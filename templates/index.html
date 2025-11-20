@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Intelligent Student Performance Analytics</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <!-- Styles -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+
+    <!-- Font Awesome -->
+    <link rel="stylesheet"
+          href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"/>
+
+    <!-- Plotly -->
+    <script src="https://cdn.plot.ly/plotly-2.30.0.min.js"></script>
+
+    <!-- App JS -->
+    <script defer src="{{ url_for('static', filename='js/app.js') }}"></script>
+</head>
+<body>
+
+<div class="app-shell">
+
+    <!-- HEADER -->
+    <header class="app-header">
+        <div class="header-title">
+            <i class="fa-solid fa-graduation-cap"></i>
+            <span>Intelligent Student Performance Analytics</span>
+        </div>
+        <div class="header-meta">
+            <span id="total-stats"></span>
+        </div>
+    </header>
+
+    <!-- BODY -->
+    <div class="app-body">
+
+        <!-- SIDEBAR -->
+        <aside class="sidebar">
+            <div class="sidebar-section">
+                <button class="nav-btn active" data-mode="student">
+                    <i class="fa-solid fa-user"></i> Student Analytics
+                </button>
+                <button class="nav-btn" data-mode="department">
+                    <i class="fa-solid fa-building"></i> Department Analytics
+                </button>
+                <button class="nav-btn" data-mode="year">
+                    <i class="fa-solid fa-calendar-alt"></i> Year-wise Analytics
+                </button>
+                <button class="nav-btn" data-mode="college">
+                    <i class="fa-solid fa-university"></i> College Analytics
+                </button>
+            </div>
+        </aside>
+
+        <!-- MAIN CONTENT -->
+        <main class="main-content">
+
+            <!-- STUDENT MODE -->
+            <section id="mode-student" class="mode-section active fade-in">
+
+                <!-- Toggle existing / new -->
+                <div class="mode-toggle card">
+                    <button id="btn-existing" class="pill-btn pill-active">Existing Student</button>
+                    <button id="btn-new" class="pill-btn">New Student</button>
+                </div>
+
+                <!-- Existing student form -->
+                <div id="existing-form" class="card form-card">
+                    <h2>Search Existing Student</h2>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Register Number</label>
+                            <input id="s-rno" type="text" placeholder="Enter Register Number">
+
+                        </div>
+                        <div class="form-group">
+                            <label>Department</label>
+                            <select id="s-dept"></select>
+                        </div>
+                        <div class="form-group">
+                            <label>Year</label>
+                            <select id="s-year"></select>
+                        </div>
+                    </div>
+                    <button class="primary-btn" onclick="searchExistingStudent()">
+                        <i class="fa-solid fa-magnifying-glass"></i> Search & Analyse
+                    </button>
+                </div>
+
+                <!-- New student form -->
+                <div id="new-form" class="card form-card hidden">
+                    <h2>Add / Analyse New Student</h2>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Name</label>
+                            <input id="n-name" placeholder="Student Name">
+                        </div>
+                        <div class="form-group">
+                            <label>Register Number</label>
+                            <input id="n-rno" placeholder="e.g., 21CS001">
+                        </div>
+                        <div class="form-group">
+                            <label>Department</label>
+                            <select id="n-dept"></select>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Year</label>
+                            <select id="n-year"></select>
+                        </div>
+                        <div class="form-group">
+                            <label>Current Semester (1-8)</label>
+                            <input id="n-curr-sem" type="number" min="1" max="8" value="1">
+                        </div>
+                        <div class="form-group">
+                            <label>Behavior Score (0-10)</label>
+                            <input id="n-behavior" type="number" min="0" max="10" value="7">
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Internal Marks (0-30)</label>
+                            <input id="n-internal" type="number" min="0" max="30" value="20">
+                        </div>
+                        <div class="form-group">
+                            <label>Total Days (Current Sem)</label>
+                            <input id="n-total-days" type="number" min="0" value="90">
+                        </div>
+                        <div class="form-group">
+                            <label>Attended Days</label>
+                            <input id="n-attended-days" type="number" min="0" value="80">
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Previous Attendance %</label>
+                            <input id="n-prev-att" type="number" min="0" max="100" value="85">
+                        </div>
+                        <div class="form-group">
+                            <label>Mentor Email (optional)</label>
+                            <input id="n-mentor-email" type="email" placeholder="mentor@example.com">
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group full-width">
+                            <label>Semester Marks (SEM1–SEM8, empty if not yet)</label>
+                            <div class="sem-grid">
+                                <input id="n-sem1" placeholder="SEM1">
+                                <input id="n-sem2" placeholder="SEM2">
+                                <input id="n-sem3" placeholder="SEM3">
+                                <input id="n-sem4" placeholder="SEM4">
+                                <input id="n-sem5" placeholder="SEM5">
+                                <input id="n-sem6" placeholder="SEM6">
+                                <input id="n-sem7" placeholder="SEM7">
+                                <input id="n-sem8" placeholder="SEM8">
+                            </div>
+                        </div>
+                    </div>
+
+                    <button class="primary-btn" onclick="analyseNewStudent()">
+                        <i class="fa-solid fa-bullseye"></i> Analyse New Student
+                    </button>
+                </div>
+
+                <!-- STUDENT REPORT -->
+                <div id="student-report" class="hidden">
+
+                    <!-- Info + KPIs -->
+                    <div class="card student-header">
+                        <div id="student-basic"></div>
+                        <div class="kpi-row kpi-big-row">
+                            <div id="kpi-performance" class="kpi-pill"></div>
+                            <div id="kpi-risk" class="kpi-pill"></div>
+                            <div id="kpi-dropout" class="kpi-pill"></div>
+                        </div>
+                    </div>
+
+                    <!-- Charts -->
+                    <div class="chart-grid">
+                        <div class="chart-card" id="st-chart-marks"></div>
+                        <div class="chart-card" id="st-chart-radar"></div>
+                        <div class="chart-card" id="st-chart-scores"></div>
+                        <div class="chart-card" id="st-chart-donut"></div>
+                        <div class="chart-card" id="st-chart-gauge-perf"></div>
+                        <div class="chart-card" id="st-chart-gauge-att"></div>
+                    </div>
+
+                    <!-- Summary + Actions in ONE section -->
+                    <div class="bottom-layout">
+                        <div class="card summary-card">
+                            <h3>AI Summary, Suggestions & Actions</h3>
+                            <div id="st-summary-text"></div>
+                            <ul id="st-suggestions"></ul>
+
+                            <div class="action-buttons">
+                                <button class="secondary-btn" onclick="exportStudentCSV()">
+                                    <i class="fa-solid fa-file-csv"></i> Export Data (CSV)
+                                </button>
+                                <button id="alert-button" class="alert-btn hidden" onclick="triggerAlertEmail()">
+                                    <i class="fa-solid fa-envelope"></i> Send Mentor Alert
+                                </button>
+                                <button class="ghost-btn" onclick="resetStudentMode()">
+                                    <i class="fa-solid fa-rotate-right"></i> Predict Another
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </section>
+
+            <!-- DEPARTMENT MODE -->
+            <section id="mode-department" class="mode-section fade-in hidden">
+                <div class="card form-card">
+                    <h2>Department Analytics</h2>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Department</label>
+                            <select id="d-dept"></select>
+                        </div>
+                        <div class="form-group">
+                            <label>Year Filter</label>
+                            <select id="d-year">
+                                <option value="all">All Years</option>
+                            </select>
+                        </div>
+                    </div>
+                    <button class="primary-btn" onclick="analyseDepartment()">
+                        <i class="fa-solid fa-chart-column"></i> Analyse Department
+                    </button>
+                </div>
+
+                <div id="dept-report" class="hidden">
+                    <div class="card kpi-row kpi-row-wide">
+                        <div class="kpi-pill small" id="dept-kpi-total"></div>
+                        <div class="kpi-pill small" id="dept-kpi-high-perf"></div>
+                        <div class="kpi-pill small" id="dept-kpi-high-risk"></div>
+                        <div class="kpi-pill small" id="dept-kpi-high-drop"></div>
+                    </div>
+
+                    <div class="card table-card">
+                        <h3>Student Snapshot</h3>
+                        <div class="table-wrapper">
+                            <table id="dept-table">
+                                <thead>
+                                <tr>
+                                    <th>RNO</th><th>Name</th><th>Year</th><th>Sem</th>
+                                    <th>Perf</th><th>Risk</th><th>Dropout</th>
+                                    <th>Perf%</th><th>Risk%</th><th>Drop%</th>
+                                </tr>
+                                </thead>
+                                <tbody></tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div class="chart-grid">
+                        <div class="chart-card" id="dept-chart-perf-donut"></div>
+                        <div class="chart-card" id="dept-chart-risk-donut"></div>
+                        <div class="chart-card" id="dept-chart-drop-donut"></div>
+                        <div class="chart-card" id="dept-chart-3d"></div>
+                    </div>
+
+                    <div class="bottom-layout">
+                        <div class="card summary-card">
+                            <h3>Department Summary & Insights</h3>
+                            <div id="dept-summary"></div>
+                        </div>
+                        <div class="card actions-card">
+                            <h3>Exports</h3>
+                            <button class="secondary-btn" onclick="exportDeptCSV()">
+                                <i class="fa-solid fa-file-arrow-down"></i> Export Department CSV
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- YEAR MODE -->
+            <section id="mode-year" class="mode-section fade-in hidden">
+                <div class="card form-card">
+                    <h2>Year-wise Analytics</h2>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Year</label>
+                            <select id="y-year"></select>
+                        </div>
+                    </div>
+                    <button class="primary-btn" onclick="analyseYear()">
+                        <i class="fa-solid fa-chart-line"></i> Analyse Year
+                    </button>
+                </div>
+
+                <div id="year-report" class="hidden">
+                    <div class="card kpi-row kpi-row-wide">
+                        <div class="kpi-pill small" id="year-kpi-total"></div>
+                        <div class="kpi-pill small" id="year-kpi-avg-perf"></div>
+                        <div class="kpi-pill small" id="year-kpi-high-risk"></div>
+                        <div class="kpi-pill small" id="year-kpi-high-drop"></div>
+                    </div>
+
+                    <div class="card table-card">
+                        <h3>Year Snapshot</h3>
+                        <div class="table-wrapper">
+                            <table id="year-table">
+                                <thead>
+                                <tr>
+                                    <th>RNO</th><th>Name</th><th>Dept</th><th>Sem</th>
+                                    <th>Perf</th><th>Risk</th><th>Dropout</th>
+                                    <th>Perf%</th><th>Risk%</th><th>Drop%</th>
+                                </tr>
+                                </thead>
+                                <tbody></tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div class="chart-grid">
+                        <div class="chart-card" id="year-chart-perf-donut"></div>
+                        <div class="chart-card" id="year-chart-scores"></div>
+                        <div class="chart-card" id="year-chart-3d"></div>
+                        <div class="chart-card" id="year-chart-hist"></div>
+                    </div>
+
+                    <div class="bottom-layout">
+                        <div class="card summary-card">
+                            <h3>Year Summary & Suggestions</h3>
+                            <div id="year-summary"></div>
+                        </div>
+                        <div class="card actions-card">
+                            <h3>Exports</h3>
+                            <button class="secondary-btn" onclick="exportYearCSV()">
+                                <i class="fa-solid fa-file-arrow-down"></i> Export Year CSV
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- COLLEGE MODE -->
+            <section id="mode-college" class="mode-section fade-in hidden">
+                <div class="card form-card">
+                    <h2>Total College Analytics</h2>
+                    <p class="small-text">
+                        We sample up to 500 students for faster 3D analytics.
+                    </p>
+                    <button class="primary-btn" onclick="analyseCollege()">
+                        <i class="fa-solid fa-layer-group"></i> Analyse College
+                    </button>
+                </div>
+
+                <div id="college-report" class="hidden">
+                    <div class="card kpi-row kpi-row-wide">
+                        <div class="kpi-pill small" id="clg-kpi-total"></div>
+                        <div class="kpi-pill small" id="clg-kpi-avg-perf"></div>
+                        <div class="kpi-pill small" id="clg-kpi-high-risk"></div>
+                        <div class="kpi-pill small" id="clg-kpi-high-drop"></div>
+                    </div>
+
+                    <div class="card table-card">
+                        <h3>Sample Snapshot (max 500)</h3>
+                        <div class="table-wrapper">
+                            <table id="clg-table">
+                                <thead>
+                                <tr>
+                                    <th>RNO</th><th>Name</th><th>Dept</th><th>Year</th><th>Sem</th>
+                                    <th>Perf</th><th>Risk</th><th>Drop</th>
+                                    <th>Perf%</th><th>Risk%</th><th>Drop%</th>
+                                </tr>
+                                </thead>
+                                <tbody></tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div class="chart-grid">
+                        <div class="chart-card" id="clg-chart-perf-donut"></div>
+                        <div class="chart-card" id="clg-chart-risk-donut"></div>
+                        <div class="chart-card" id="clg-chart-3d"></div>
+                        <div class="chart-card" id="clg-chart-box"></div>
+                    </div>
+
+                    <div class="bottom-layout">
+                        <div class="card summary-card">
+                            <h3>College Summary & High-level Insights</h3>
+                            <div id="clg-summary"></div>
+                        </div>
+                        <div class="card actions-card">
+                            <h3>Exports</h3>
+                            <button class="secondary-btn" onclick="exportCollegeCSV()">
+                                <i class="fa-solid fa-file-arrow-down"></i> Export College CSV
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+        </main>
+    </div>
+</div>
+
+<div id="loading-overlay" class="hidden">
+    <div class="spinner"></div>
+    <p>Processing...</p>
+</div>
+
+</body>
+</html>
