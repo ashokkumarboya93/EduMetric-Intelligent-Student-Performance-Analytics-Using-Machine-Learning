@@ -1605,6 +1605,7 @@ S.NO,NAME,RNO,EMAIL,DEPT,YEAR,CURR_SEM,MENTOR,MENTOR_EMAIL,SEM1,SEM2,SEM3,SEM4,S
 3.0,Rohit Malhotra,23EEE9003,rohit.malhotra03@gmail.com,EEE,2.0,3.0,Dr. Anil Kumar,dr.anil.kumar@gmail.com,75.0,78.0,0.0,0.0,0.0,0.0,0.0,0.0,24.0,104.0,90.0,88.0,8.5,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,20.0
 4.0,Kiran Das,23MECH9004,kiran.das04@gmail.com,MECH,1.0,2.0,Prof. Vikas Sharma,prof.vikas.sharma@gmail.com,42.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,14.0,96.0,52.0,60.0,5.1,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,20.0
 5.0,Pooja Singh,23CIVIL9005,pooja.singh05@gmail.com,CIVIL,1.0,1.0,Dr. Neha Gupta,dr.neha.gupta@gmail.com,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,12.0,90.0,45.0,55.0,4.3,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,20.0
+,A Karthik,22G31A3100,karthik256@gmail.com,CSE(AI),4.0,8.0,Ashok,ashokkumarboya93@gmail.com,80.0,90.0,85.0,78.0,78.0,76.0,80.0,0.0,26.0,90.0,80.0,85.0,8.0,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
 1.0,Oliver Smith,RNO9001,oliver.smith@uni.edu,CSE,3.0,6.0,Dr.John,mentor1@uni.edu,82.0,85.0,88.0,90.0,92.0,0.0,0.0,0.0,45.0,120.0,114.0,94.0,9.0,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,20.0
 2.0,Emma Johnson,RNO9002,emma.johnson@uni.edu,CSE,3.0,6.0,Dr.John,mentor1@uni.edu,78.0,80.0,83.0,86.0,88.0,0.0,0.0,0.0,43.0,120.0,110.0,92.0,8.0,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,20.0
 3.0,Liam Brown,RNO9003,liam.brown@uni.edu,AI,4.0,8.0,Dr.Steve,mentor2@uni.edu,88.0,90.0,92.0,94.0,96.0,95.0,93.0,94.0,48.0,120.0,118.0,97.0,10.0,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,20.0
@@ -1613,4 +1614,4 @@ S.NO,NAME,RNO,EMAIL,DEPT,YEAR,CURR_SEM,MENTOR,MENTOR_EMAIL,SEM1,SEM2,SEM3,SEM4,S
 6.0,Ava Davis,RNO9006,ava.davis@uni.edu,EEE,2.0,4.0,Dr.Alex,mentor3@uni.edu,30.0,32.0,34.0,36.0,0.0,0.0,0.0,0.0,15.0,120.0,45.0,42.0,2.0,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,20.0
 7.0,Ethan Taylor,RNO9007,ethan.taylor@uni.edu,MECH,3.0,6.0,Dr.Mark,mentor4@uni.edu,40.0,42.0,45.0,44.0,46.0,0.0,0.0,0.0,20.0,120.0,58.0,50.0,4.0,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,20.0
 8.0,Mia Anderson,RNO9008,mia.anderson@uni.edu,MECH,3.0,6.0,Dr.Mark,mentor4@uni.edu,28.0,30.0,32.0,34.0,35.0,0.0,0.0,0.0,14.0,120.0,40.0,38.0,2.0,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,20.0
-,A Karthik,22G31A3100,karthik256@gmail.com,CSE(AI),4.0,8.0,Ashok,ashokkumarboya93@gmail.com,80.0,90.0,85.0,78.0,78.0,76.0,80.0,0.0,26.0,90.0,80.0,85.0,8.0,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+,RAJESH,22G31A3167,rajesh@gmail.com,CSE(AI),4.0,8.0,Dhruva,dhruva143@gmail.com,72.0,79.0,74.0,78.0,71.0,81.0,77.0,0.0,25.0,90.0,80.0,85.0,9.0,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,

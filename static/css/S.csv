@@ -1,9 +1,0 @@
-S.NO,NAME,RNO,EMAIL,DEPT,YEAR,CURR_SEM,MENTOR,MENTOR_EMAIL,SEM1,SEM2,SEM3,SEM4,SEM5,SEM6,SEM7,SEM8,INTERNAL_MARKS,TOTAL_DAYS_CURR,ATTENDED_DAYS_CURR,PREV_ATTENDANCE_PERC,BEHAVIOR_SCORE_10
-1,Oliver Smith,RNO9001,oliver.smith@uni.edu,CSE,3,6,Dr.John,mentor1@uni.edu,82,85,88,90,92,0,0,0,45,120,114,94,9
-2,Emma Johnson,RNO9002,emma.johnson@uni.edu,CSE,3,6,Dr.John,mentor1@uni.edu,78,80,83,86,88,0,0,0,43,120,110,92,8
-3,Liam Brown,RNO9003,liam.brown@uni.edu,AI,4,8,Dr.Steve,mentor2@uni.edu,88,90,92,94,96,95,93,94,48,120,118,97,10
-4,Sophia Wilson,RNO9004,sophia.wilson@uni.edu,AI,4,8,Dr.Steve,mentor2@uni.edu,75,78,80,82,85,87,88,90,42,120,112,93,9
-5,Noah Miller,RNO9005,noah.miller@uni.edu,EEE,2,4,Dr.Alex,mentor3@uni.edu,35,38,40,42,0,0,0,0,18,120,52,48,3
-6,Ava Davis,RNO9006,ava.davis@uni.edu,EEE,2,4,Dr.Alex,mentor3@uni.edu,30,32,34,36,0,0,0,0,15,120,45,42,2
-7,Ethan Taylor,RNO9007,ethan.taylor@uni.edu,MECH,3,6,Dr.Mark,mentor4@uni.edu,40,42,45,44,46,0,0,0,20,120,58,50,4
-8,Mia Anderson,RNO9008,mia.anderson@uni.edu,MECH,3,6,Dr.Mark,mentor4@uni.edu,28,30,32,34,35,0,0,0,14,120,40,38,2

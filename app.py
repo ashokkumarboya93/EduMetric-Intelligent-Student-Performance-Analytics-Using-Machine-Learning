@@ -420,6 +420,12 @@ def analyze_subset(df):
 def index():
     return render_template("index.html")
 
+# Chat-based assistant disabled for current release
+# @app.route("/api/chat", methods=["POST"])
+# def api_chat():
+#     """NLP Chat Assistant for analytics queries - DISABLED"""
+#     return jsonify({"success": False, "message": "Chat assistant is currently disabled"})
+
 @app.route("/api/stats")
 def api_stats():
     try:
@@ -605,9 +611,14 @@ def api_college():
         if df.empty:
             return jsonify({"success": False, "message": "No data available"}), 400
         
-        # Use all students for analytics
+        # Sample data if too large
+        original_size = len(df)
+        if len(df) > 500:
+            df = df.sample(min(500, len(df)), random_state=42)
+
         res = analyze_subset(df)
-        res["total_size"] = int(len(df))
+        res["sample_size"] = int(len(df))
+        res["total_size"] = int(original_size)
         return jsonify(to_py({"success": True, **res}))
     except Exception as e:
         print(f"[ERR] College analysis: {e}")
@@ -626,6 +637,10 @@ def api_batch_analyze():
         df = load_ds3_data().copy()
         if df.empty:
             return jsonify({"success": False, "message": "No data available"}), 400
+        
+        # Create batch_year column if it doesn't exist
+        if 'batch_year' not in df.columns:
+            df['batch_year'] = df['YEAR'].apply(lambda x: 2022 + int(x) if pd.notna(x) else 2025)
         
         # Filter by batch_year
         batch_df = df[df["batch_year"].fillna(0).astype(int) == int(batch_year)]
@@ -698,6 +713,10 @@ def api_batch_students():
         df = load_ds3_data().copy()
         if df.empty:
             return jsonify({"success": False, "message": "No data available"}), 400
+        
+        # Create batch_year column if it doesn't exist
+        if 'batch_year' not in df.columns:
+            df['batch_year'] = df['YEAR'].apply(lambda x: 2022 + int(x) if pd.notna(x) else 2025)
         
         # Filter by batch_year and category
         filtered_df = df[
@@ -1618,6 +1637,8 @@ def api_analytics_drilldown():
             elif scope == "year":
                 df = df[df["YEAR"].fillna(0).astype(int) == int(scope_value)]
             elif scope == "batch":
+                if 'batch_year' not in df.columns:
+                    df['batch_year'] = df['YEAR'].apply(lambda x: 2022 + int(x) if pd.notna(x) else 2025)
                 df = df[df["batch_year"].fillna(0).astype(int) == int(scope_value)]
             elif scope == "college":
                 # No additional filter for college-wide

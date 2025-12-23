@@ -15,6 +15,8 @@
     <!-- Plotly -->
     <script src="https://cdn.plot.ly/plotly-2.30.0.min.js"></script>
 
+    <!-- Chat JS disabled for current release -->
+    <!-- <script src="{{ url_for('static', filename='js/chat.js') }}"></script> -->
     <!-- App JS -->
     <script defer src="{{ url_for('static', filename='js/app.js') }}"></script>
 </head>
@@ -410,6 +412,11 @@
                     <i class="fa-solid fa-database"></i>
                     <span>CRUD for Students</span>
                 </button>
+                <!-- Chat assistant disabled for current release -->
+                <!-- <button class="nav-btn" data-mode="chat">
+                    <i class="fa-solid fa-comments"></i>
+                    <span>AI Chat Assistant</span>
+                </button> -->
             </div>
         </aside>
 
@@ -436,6 +443,10 @@
             <button class="mini-nav-btn" data-mode="crud" title="CRUD for Students">
                 <i class="fa-solid fa-database"></i>
             </button>
+            <!-- Chat assistant disabled for current release -->
+            <!-- <button class="mini-nav-btn" data-mode="chat" title="AI Chat Assistant">
+                <i class="fa-solid fa-comments"></i>
+            </button> -->
         </div>
 
         <!-- MAIN CONTENT -->
@@ -1230,6 +1241,41 @@
                     </div>
                 </div>
             </section>
+
+            <!-- Chat-based assistant disabled for current release -->
+            <!-- <section id="mode-chat" class="mode-section fade-in hidden">
+                <div class="card form-card">
+                    <h2><i class="fa-solid fa-robot"></i> AI Analytics Assistant</h2>
+                    <p class="small-text">Ask questions about student performance, risk assessment, and analytics in natural language.</p>
+                </div>
+
+                <div class="chat-container card">
+                    <div class="chat-messages" id="chat-messages">
+                        <div class="chat-message bot-message">
+                            <div class="message-avatar"><i class="fa-solid fa-robot"></i></div>
+                            <div class="message-content">
+                                <p>Hello! I'm your AI Analytics Assistant. I can help you with:</p>
+                                <ul>
+                                    <li>Finding top performers and high-risk students</li>
+                                    <li>Department performance comparisons</li>
+                                    <li>Attendance and dropout analysis</li>
+                                    <li>Batch summaries and insights</li>
+                                </ul>
+                                <p>Try asking: "Who are the top performers?" or "Show high-risk students in CSE"</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="chat-input-container">
+                        <div class="chat-input-wrapper">
+                            <input type="text" id="chat-input" placeholder="Ask me anything about student analytics..." maxlength="500">
+                            <button id="chat-send-btn" onclick="sendChatMessage()">
+                                <i class="fa-solid fa-paper-plane"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </section> -->
 
         </main>
     </div>

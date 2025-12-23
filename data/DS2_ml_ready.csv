@@ -1,9 +1,0 @@
-RNO,NAME,DEPT,YEAR,CURR_SEM,past_avg,past_count,internal_pct,attendance_pct,behavior_pct,performance_trend,performance_label,risk_label,dropout_label,performance_overall,risk_score,dropout_score
-RNO9001,Oliver Smith,CSE,3,6,87.4,5,150.0,94.3,90.0,2.0,high,low,low,107.34,7.34,1.25
-RNO9002,Emma Johnson,CSE,3,6,83.0,5,143.33,90.57,80.0,2.0,high,low,low,102.08,2.08,5.97
-RNO9003,Liam Brown,AI,4,8,92.57,7,160.0,98.23,100.0,-2.0,high,low,low,114.02,14.02,4.02
-RNO9004,Sophia Wilson,AI,4,8,82.14,7,140.0,92.93,90.0,1.0,high,low,low,101.51,1.51,3.73
-RNO9005,Noah Miller,EEE,2,4,37.67,3,60.0,42.93,30.0,2.0,medium,normal,medium,44.77,55.23,57.18
-RNO9006,Ava Davis,EEE,2,4,32.0,3,50.0,36.65,20.0,2.0,medium,normal,medium,37.5,62.5,64.15
-RNO9007,Ethan Taylor,MECH,3,6,43.4,5,66.67,47.83,40.0,2.0,high,normal,medium,50.87,49.13,51.51
-RNO9008,Mia Anderson,MECH,3,6,31.8,5,46.67,32.93,20.0,1.0,medium,normal,medium,35.84,64.16,67.1
