@@ -6,6 +6,11 @@ from flask import Flask, jsonify, request, render_template, send_file
 import joblib
 import io
 import base64
+from db import (
+    load_students_df, get_student_by_rno, insert_student, 
+    update_student, delete_student, batch_insert_students, get_stats
+)
+
 try:
     from fpdf import FPDF
     FPDF_AVAILABLE = True
@@ -92,10 +97,7 @@ def safe_read_csv(path):
         print(f"[WARN] Could not read {path}: {e}")
         return pd.DataFrame()
 
-# Load DS3 as primary data source
-DS3 = safe_read_csv(os.path.join(DATA_DIR, r"DS3_full_report.csv"))
-DS1 = safe_read_csv(os.path.join(DATA_DIR, r"DS1.csv"))
-DS2 = safe_read_csv(os.path.join(DATA_DIR, r"DS2_ml_ready.csv"))
+# MySQL is now the SINGLE SOURCE OF TRUTH - No more CSV loading
 
 def safe_load(name):
     path = os.path.join(DATA_DIR, name)
@@ -224,52 +226,11 @@ def predict_student(f):
     }
 
 # ===========================================================
-# LOAD DS3 FOR ANALYTICS
+# LOAD DS3 FOR ANALYTICS - NOW FROM MYSQL
 # ===========================================================
 def load_ds3_data():
-    """Load DS3 full report dataset as primary data source"""
-    global DS3
-    
-    # Try to load DS3 if not already loaded
-    if DS3.empty:
-        ds3_path = os.path.join(DATA_DIR, "DS3_full_report.csv")
-        if os.path.exists(ds3_path):
-            DS3 = safe_read_csv(ds3_path)
-    
-    # Clean DS3 data if it has issues
-    if not DS3.empty:
-        try:
-            # Remove duplicate columns if they exist
-            DS3 = DS3.loc[:, ~DS3.columns.duplicated()]
-            
-            # Ensure required columns exist
-            required_cols = ['RNO', 'NAME', 'DEPT', 'YEAR', 'CURR_SEM']
-            missing_cols = [col for col in required_cols if col not in DS3.columns]
-            
-            if missing_cols:
-                print(f"[WARN] Missing columns in DS3: {missing_cols}")
-                # Try fallback to DS1
-                if not DS1.empty:
-                    return DS1
-                return pd.DataFrame()
-            
-            # Clean data types
-            DS3['YEAR'] = pd.to_numeric(DS3['YEAR'], errors='coerce').fillna(1)
-            DS3['CURR_SEM'] = pd.to_numeric(DS3['CURR_SEM'], errors='coerce').fillna(1)
-            DS3['RNO'] = DS3['RNO'].astype(str).str.strip()
-            DS3['NAME'] = DS3['NAME'].astype(str).str.strip()
-            DS3['DEPT'] = DS3['DEPT'].astype(str).str.strip()
-            
-            return DS3
-        except Exception as e:
-            print(f"[WARN] Error cleaning DS3 data: {e}")
-    
-    # Fallback to DS1 if DS3 is not available or corrupted
-    if not DS1.empty:
-        return DS1
-    
-    # Last resort - return empty DataFrame
-    return pd.DataFrame()
+    """Load student data from MySQL - SINGLE SOURCE OF TRUTH"""
+    return load_students_df()
 
 # ===========================================================
 # GROUP ANALYSIS
@@ -429,37 +390,8 @@ def index():
 @app.route("/api/stats")
 def api_stats():
     try:
-        # Use DS3 as primary data source
-        data_source = load_ds3_data()
-        if data_source.empty:
-            print("[WARN] No data available in DS3")
-            return jsonify({"total_students": 0, "departments": [], "years": []})
-        
-        print(f"[INFO] DS3 data loaded: {len(data_source)} students")
-        
-        try:
-            departments = sorted(data_source["DEPT"].dropna().astype(str).unique().tolist())
-            print(f"[INFO] Departments found: {departments}")
-        except Exception as e:
-            print(f"[WARN] Error getting departments: {e}")
-            departments = []
-        
-        try:
-            years = sorted(
-                [int(y) for y in data_source["YEAR"].dropna().astype(float).astype(int).unique()]
-            )
-            print(f"[INFO] Years found: {years}")
-        except Exception as e:
-            print(f"[WARN] Error getting years: {e}")
-            years = []
-        
-        return jsonify(
-            {
-                "total_students": int(len(data_source)),
-                "departments": departments,
-                "years": years,
-            }
-        )
+        stats = get_stats()
+        return jsonify(stats)
     except Exception as e:
         print(f"[ERR] Stats API error: {e}")
         return jsonify({"total_students": 0, "departments": [], "years": []}), 500
@@ -474,45 +406,38 @@ def api_student_search():
             {"success": False, "message": "Please provide Register Number."}
         ), 400
 
-    # Use DS3 as primary data source
-    data_source = load_ds3_data()
+    # Search student in MySQL
+    student = get_student_by_rno(rno)
     
-    # Search for student by RNO
-    df = data_source[data_source["RNO"].astype(str).str.strip() == rno]
-
-    if df.empty:
+    if not student:
         return jsonify({"success": False, "message": "Student not found."}), 200
 
-    # Get the first matching student
-    student_raw = df.iloc[0].to_dict()
-    
-    # Extract only the required fields for prediction
+    # Convert to proper format
     student_data = {
-        "NAME": student_raw.get("NAME", ""),
-        "RNO": student_raw.get("RNO", ""),
-        "EMAIL": student_raw.get("EMAIL", ""),
-        "DEPT": student_raw.get("DEPT", ""),
-        "YEAR": safe_int(student_raw.get("YEAR", 0)),
-        "CURR_SEM": safe_int(student_raw.get("CURR_SEM", 0)),
-        "MENTOR": student_raw.get("MENTOR", ""),
-        "MENTOR_EMAIL": student_raw.get("MENTOR_EMAIL", ""),
-        "SEM1": student_raw.get("SEM1", 0.0) or 0.0,
-        "SEM2": student_raw.get("SEM2", 0.0) or 0.0,
-        "SEM3": student_raw.get("SEM3", 0.0) or 0.0,
-        "SEM4": student_raw.get("SEM4", 0.0) or 0.0,
-        "SEM5": student_raw.get("SEM5", 0.0) or 0.0,
-        "SEM6": student_raw.get("SEM6", 0.0) or 0.0,
-        "SEM7": student_raw.get("SEM7", 0.0) or 0.0,
-        "SEM8": student_raw.get("SEM8", 0.0) or 0.0,
-        "INTERNAL_MARKS": student_raw.get("INTERNAL_MARKS", 0.0) or 0.0,
-        "TOTAL_DAYS_CURR": student_raw.get("TOTAL_DAYS_CURR", 0.0) or 0.0,
-        "ATTENDED_DAYS_CURR": student_raw.get("ATTENDED_DAYS_CURR", 0.0) or 0.0,
-        "PREV_ATTENDANCE_PERC": student_raw.get("PREV_ATTENDANCE_PERC", 0.0) or 0.0,
-        "BEHAVIOR_SCORE_10": student_raw.get("BEHAVIOR_SCORE_10", 0.0) or 0.0
+        "NAME": student.get("NAME", ""),
+        "RNO": student.get("RNO", ""),
+        "EMAIL": student.get("EMAIL", ""),
+        "DEPT": student.get("DEPT", ""),
+        "YEAR": safe_int(student.get("YEAR", 0)),
+        "CURR_SEM": safe_int(student.get("CURR_SEM", 0)),
+        "MENTOR": student.get("MENTOR", ""),
+        "MENTOR_EMAIL": student.get("MENTOR_EMAIL", ""),
+        "SEM1": student.get("SEM1", 0.0) or 0.0,
+        "SEM2": student.get("SEM2", 0.0) or 0.0,
+        "SEM3": student.get("SEM3", 0.0) or 0.0,
+        "SEM4": student.get("SEM4", 0.0) or 0.0,
+        "SEM5": student.get("SEM5", 0.0) or 0.0,
+        "SEM6": student.get("SEM6", 0.0) or 0.0,
+        "SEM7": student.get("SEM7", 0.0) or 0.0,
+        "SEM8": student.get("SEM8", 0.0) or 0.0,
+        "INTERNAL_MARKS": student.get("INTERNAL_MARKS", 0.0) or 0.0,
+        "TOTAL_DAYS_CURR": student.get("TOTAL_DAYS_CURR", 0.0) or 0.0,
+        "ATTENDED_DAYS_CURR": student.get("ATTENDED_DAYS_CURR", 0.0) or 0.0,
+        "PREV_ATTENDANCE_PERC": student.get("PREV_ATTENDANCE_PERC", 0.0) or 0.0,
+        "BEHAVIOR_SCORE_10": student.get("BEHAVIOR_SCORE_10", 0.0) or 0.0
     }
     
-    student = to_py(student_data)
-    return jsonify({"success": True, "student": student})
+    return jsonify({"success": True, "student": to_py(student_data)})
 
 
 @app.route("/api/student/predict", methods=["POST"])
@@ -1014,8 +939,6 @@ def api_analytics_preview():
 
 @app.route("/api/batch-upload", methods=["POST"])
 def api_batch_upload():
-    global DS1, DS2, DS3
-    
     if "file" not in request.files:
         return jsonify({"success": False, "message": "No file uploaded"}), 400
     
@@ -1029,7 +952,7 @@ def api_batch_upload():
         return jsonify({"success": False, "message": "Invalid file type. Only CSV/XLSX allowed"}), 400
     
     try:
-        # Read uploaded file
+        # Read uploaded file temporarily
         if file.filename.endswith(".csv"):
             df_uploaded = pd.read_csv(file)
         else:
@@ -1041,110 +964,49 @@ def api_batch_upload():
         processed_rows = len(df_uploaded)
         
         if mode == "normalize":
-            # NORMALIZE MODE: Process raw DS1-style data
+            # Clean and normalize data
             df_clean = clean_data(df_uploaded)
             
-            # Ensure RNO column exists and is properly formatted
-            if 'RNO' not in df_clean.columns and 'reg_number' in df_clean.columns:
-                df_clean['RNO'] = df_clean['reg_number']
-            
-            # Update DS1
-            ds1_path = os.path.join(DATA_DIR, "DS1.csv")
-            df_old = safe_read_csv(ds1_path)
-            
-            # Remove duplicates based on RNO before concatenating
-            if not df_old.empty:
-                df_all = pd.concat([df_old, df_clean], ignore_index=True)
-                df_all.drop_duplicates(subset=["RNO"], keep="last", inplace=True)
-            else:
-                df_all = df_clean.copy()
-            
-            df_all.to_csv(ds1_path, index=False)
-            DS1 = df_all
-            
-            # Create DS3 full report dataset with proper normalization
-            ds3_data = create_ds3_dataset(df_clean)
-            
-            # Update DS3 full report with proper column alignment
-            ds3_path = os.path.join(DATA_DIR, "DS3_full_report.csv")
-            if os.path.exists(ds3_path):
-                df_existing_ds3 = safe_read_csv(ds3_path)
+            # Compute features and predictions for each student
+            enhanced_students = []
+            for _, row in df_clean.iterrows():
+                student_dict = row.to_dict()
+                feats = compute_features(student_dict)
+                preds = predict_student(feats)
                 
-                # Ensure column alignment
-                if not df_existing_ds3.empty:
-                    # Align columns
-                    common_cols = list(set(df_existing_ds3.columns) & set(ds3_data.columns))
-                    df_existing_ds3 = df_existing_ds3[common_cols]
-                    ds3_data = ds3_data[common_cols]
-                    
-                    ds3_combined = pd.concat([df_existing_ds3, ds3_data], ignore_index=True)
-                    ds3_combined.drop_duplicates(subset=["RNO"], keep="last", inplace=True)
-                else:
-                    ds3_combined = ds3_data.copy()
-                    
-                ds3_combined.to_csv(ds3_path, index=False)
-                DS3 = ds3_combined
+                # Merge all data
+                full_record = student_dict.copy()
+                full_record.update(feats)
+                full_record.update(preds)
+                enhanced_students.append(full_record)
+            
+            # Convert to DataFrame and insert into MySQL
+            df_enhanced = pd.DataFrame(enhanced_students)
+            success = batch_insert_students(df_enhanced)
+            
+            if success:
+                return jsonify({
+                    "success": True,
+                    "mode": "normalize",
+                    "processed_rows": processed_rows,
+                    "message": "Data normalized, predictions generated, and saved to MySQL successfully"
+                })
             else:
-                ds3_data.to_csv(ds3_path, index=False)
-                DS3 = ds3_data
-            
-            # Update DS2 (ML-ready)
-            ds2_cols = ['RNO', 'NAME', 'DEPT', 'YEAR', 'CURR_SEM', 'past_avg', 'past_count',
-                       'internal_pct', 'attendance_pct', 'behavior_pct', 'performance_trend',
-                       'performance_label', 'risk_label', 'dropout_label', 'performance_overall',
-                       'risk_score', 'dropout_score']
-            available_cols = [col for col in ds2_cols if col in ds3_data.columns]
-            ds2_data = ds3_data[available_cols].copy()
-            
-            ds2_path = os.path.join(DATA_DIR, "DS2_ml_ready.csv")
-            ds2_data.to_csv(ds2_path, index=False)
-            DS2 = ds2_data
-            
-            # Count added and updated records
-            added = len(ds3_data)
-            updated = len(df_all) - len(df_old) if not df_old.empty else 0
-            
-            return jsonify({
-                "success": True,
-                "mode": "normalize",
-                "processed_rows": processed_rows,
-                "added": added,
-                "updated": updated,
-                "total_records": len(DS3) if not DS3.empty else 0,
-                "message": "Data normalized and predictions generated successfully"
-            })
-            
+                return jsonify({"success": False, "message": "Failed to save data to MySQL"}), 500
+                
         else:
-            # ANALYTICS MODE: Process already normalized data
-            # Auto-detect if predictions are missing and compute them
-            if 'performance_label' not in df_uploaded.columns:
-                # Need to compute predictions
-                ds3_data = create_ds3_dataset(df_uploaded)
-            else:
-                ds3_data = df_uploaded.copy()
+            # Analytics mode - data already has predictions
+            success = batch_insert_students(df_uploaded)
             
-            # Update DS3 full report
-            ds3_path = os.path.join(DATA_DIR, "DS3_full_report.csv")
-            if os.path.exists(ds3_path):
-                df_existing_ds3 = safe_read_csv(ds3_path)
-                if not df_existing_ds3.empty:
-                    ds3_combined = pd.concat([df_existing_ds3, ds3_data], ignore_index=True)
-                    ds3_combined.drop_duplicates(subset=["RNO"], keep="last", inplace=True)
-                else:
-                    ds3_combined = ds3_data.copy()
-                ds3_combined.to_csv(ds3_path, index=False)
-                DS3 = ds3_combined
+            if success:
+                return jsonify({
+                    "success": True,
+                    "mode": "analytics",
+                    "processed_rows": processed_rows,
+                    "message": "Analytics data saved to MySQL successfully"
+                })
             else:
-                ds3_data.to_csv(ds3_path, index=False)
-                DS3 = ds3_data
-            
-            return jsonify({
-                "success": True,
-                "mode": "analytics",
-                "processed_rows": processed_rows,
-                "total_students": len(DS3) if not DS3.empty else 0,
-                "message": "Analytics data processed successfully"
-            })
+                return jsonify({"success": False, "message": "Failed to save data to MySQL"}), 500
         
     except Exception as e:
         print(f"[ERR] batch upload: {e}")
@@ -1187,14 +1049,12 @@ Student Analytics System"""
     return alerts_sent
 
 # ===========================================================
-# CRUD API ENDPOINTS
+# CRUD API ENDPOINTS - MYSQL FIRST
 # ===========================================================
 
 @app.route("/api/student/create", methods=["POST"])
 def api_create_student():
-    """Create a new student record"""
-    global DS1, DS3
-    
+    """Create a new student record in MySQL"""
     try:
         data = request.get_json(silent=True) or {}
         
@@ -1205,11 +1065,9 @@ def api_create_student():
                 return jsonify({"success": False, "message": f"{field} is required"}), 400
         
         # Check if student already exists
-        data_source = load_ds3_data()
-        if not data_source.empty:
-            existing = data_source[data_source["RNO"].astype(str).str.strip() == str(data.get("RNO")).strip()]
-            if not existing.empty:
-                return jsonify({"success": False, "message": "Student with this RNO already exists"}), 400
+        existing = get_student_by_rno(data.get("RNO"))
+        if existing:
+            return jsonify({"success": False, "message": "Student with this RNO already exists"}), 400
         
         # Create student record with defaults
         student_data = {
@@ -1245,33 +1103,17 @@ def api_create_student():
         full_record.update(feats)
         full_record.update(preds)
         
-        # Add to DS1
-        ds1_path = os.path.join(DATA_DIR, "DS1.csv")
-        if os.path.exists(ds1_path):
-            DS1 = safe_read_csv(ds1_path)
-            new_ds1 = pd.concat([DS1, pd.DataFrame([student_data])], ignore_index=True)
+        # Insert into MySQL
+        success = insert_student(full_record)
+        
+        if success:
+            return jsonify({
+                "success": True,
+                "message": "Student created successfully",
+                "student": to_py(full_record)
+            })
         else:
-            new_ds1 = pd.DataFrame([student_data])
-        
-        new_ds1.to_csv(ds1_path, index=False)
-        DS1 = new_ds1
-        
-        # Add to DS3
-        ds3_path = os.path.join(DATA_DIR, "DS3_full_report.csv")
-        if os.path.exists(ds3_path):
-            DS3 = safe_read_csv(ds3_path)
-            new_ds3 = pd.concat([DS3, pd.DataFrame([full_record])], ignore_index=True)
-        else:
-            new_ds3 = pd.DataFrame([full_record])
-        
-        new_ds3.to_csv(ds3_path, index=False)
-        DS3 = new_ds3
-        
-        return jsonify({
-            "success": True,
-            "message": "Student created successfully",
-            "student": to_py(full_record)
-        })
+            return jsonify({"success": False, "message": "Failed to create student"}), 500
         
     except Exception as e:
         print(f"[ERR] Create student: {e}")
@@ -1279,7 +1121,7 @@ def api_create_student():
 
 @app.route("/api/student/read", methods=["POST"])
 def api_read_student():
-    """Read/search student records"""
+    """Read/search student records from MySQL"""
     try:
         data = request.get_json(silent=True) or {}
         rno = data.get("rno", "").strip()
@@ -1288,15 +1130,16 @@ def api_read_student():
         if not rno and not name:
             return jsonify({"success": False, "message": "Please provide RNO or Name to search"}), 400
         
-        data_source = load_ds3_data()
-        if data_source.empty:
+        # Load all students from MySQL
+        df = load_students_df()
+        if df.empty:
             return jsonify({"success": False, "message": "No student data available"}), 400
         
         # Search by RNO or Name
         if rno:
-            results = data_source[data_source["RNO"].astype(str).str.strip().str.contains(rno, case=False, na=False)]
+            results = df[df["RNO"].astype(str).str.strip().str.contains(rno, case=False, na=False)]
         else:
-            results = data_source[data_source["NAME"].astype(str).str.strip().str.contains(name, case=False, na=False)]
+            results = df[df["NAME"].astype(str).str.strip().str.contains(name, case=False, na=False)]
         
         if results.empty:
             return jsonify({"success": False, "message": "No students found matching the search criteria"})
@@ -1332,9 +1175,7 @@ def api_read_student():
 
 @app.route("/api/student/update", methods=["POST"])
 def api_update_student():
-    """Update existing student record"""
-    global DS1, DS3
-    
+    """Update existing student record in MySQL"""
     try:
         data = request.get_json(silent=True) or {}
         rno = data.get("RNO", "").strip()
@@ -1342,84 +1183,57 @@ def api_update_student():
         if not rno:
             return jsonify({"success": False, "message": "RNO is required for update"}), 400
         
-        # Find student in DS3
-        data_source = load_ds3_data()
-        if data_source.empty:
-            return jsonify({"success": False, "message": "No student data available"}), 400
-        
-        student_idx = data_source[data_source["RNO"].astype(str).str.strip() == rno].index
-        if len(student_idx) == 0:
+        # Check if student exists
+        existing = get_student_by_rno(rno)
+        if not existing:
             return jsonify({"success": False, "message": "Student not found"}), 404
         
         # Update student data
-        idx = student_idx[0]
         updated_data = {
-            'NAME': str(data.get('NAME', data_source.loc[idx, 'NAME'])).strip(),
-            'EMAIL': str(data.get('EMAIL', data_source.loc[idx, 'EMAIL'])).strip(),
-            'DEPT': str(data.get('DEPT', data_source.loc[idx, 'DEPT'])).strip(),
-            'YEAR': safe_int(data.get('YEAR', data_source.loc[idx, 'YEAR'])),
-            'CURR_SEM': safe_int(data.get('CURR_SEM', data_source.loc[idx, 'CURR_SEM'])),
-            'MENTOR': str(data.get('MENTOR', data_source.loc[idx, 'MENTOR'] if 'MENTOR' in data_source.columns else '')).strip(),
-            'MENTOR_EMAIL': str(data.get('MENTOR_EMAIL', data_source.loc[idx, 'MENTOR_EMAIL'] if 'MENTOR_EMAIL' in data_source.columns else '')).strip(),
-            'SEM1': float(data.get('SEM1', data_source.loc[idx, 'SEM1'] if 'SEM1' in data_source.columns else 0) or 0),
-            'SEM2': float(data.get('SEM2', data_source.loc[idx, 'SEM2'] if 'SEM2' in data_source.columns else 0) or 0),
-            'SEM3': float(data.get('SEM3', data_source.loc[idx, 'SEM3'] if 'SEM3' in data_source.columns else 0) or 0),
-            'SEM4': float(data.get('SEM4', data_source.loc[idx, 'SEM4'] if 'SEM4' in data_source.columns else 0) or 0),
-            'SEM5': float(data.get('SEM5', data_source.loc[idx, 'SEM5'] if 'SEM5' in data_source.columns else 0) or 0),
-            'SEM6': float(data.get('SEM6', data_source.loc[idx, 'SEM6'] if 'SEM6' in data_source.columns else 0) or 0),
-            'SEM7': float(data.get('SEM7', data_source.loc[idx, 'SEM7'] if 'SEM7' in data_source.columns else 0) or 0),
-            'SEM8': float(data.get('SEM8', data_source.loc[idx, 'SEM8'] if 'SEM8' in data_source.columns else 0) or 0),
-            'INTERNAL_MARKS': float(data.get('INTERNAL_MARKS', data_source.loc[idx, 'INTERNAL_MARKS'] if 'INTERNAL_MARKS' in data_source.columns else 20) or 20),
-            'TOTAL_DAYS_CURR': float(data.get('TOTAL_DAYS_CURR', data_source.loc[idx, 'TOTAL_DAYS_CURR'] if 'TOTAL_DAYS_CURR' in data_source.columns else 90) or 90),
-            'ATTENDED_DAYS_CURR': float(data.get('ATTENDED_DAYS_CURR', data_source.loc[idx, 'ATTENDED_DAYS_CURR'] if 'ATTENDED_DAYS_CURR' in data_source.columns else 80) or 80),
-            'PREV_ATTENDANCE_PERC': float(data.get('PREV_ATTENDANCE_PERC', data_source.loc[idx, 'PREV_ATTENDANCE_PERC'] if 'PREV_ATTENDANCE_PERC' in data_source.columns else 85) or 85),
-            'BEHAVIOR_SCORE_10': float(data.get('BEHAVIOR_SCORE_10', data_source.loc[idx, 'BEHAVIOR_SCORE_10'] if 'BEHAVIOR_SCORE_10' in data_source.columns else 7) or 7)
+            'NAME': str(data.get('NAME', existing.get('NAME', ''))).strip(),
+            'EMAIL': str(data.get('EMAIL', existing.get('EMAIL', ''))).strip(),
+            'DEPT': str(data.get('DEPT', existing.get('DEPT', ''))).strip(),
+            'YEAR': safe_int(data.get('YEAR', existing.get('YEAR', 0))),
+            'CURR_SEM': safe_int(data.get('CURR_SEM', existing.get('CURR_SEM', 0))),
+            'MENTOR': str(data.get('MENTOR', existing.get('MENTOR', ''))).strip(),
+            'MENTOR_EMAIL': str(data.get('MENTOR_EMAIL', existing.get('MENTOR_EMAIL', ''))).strip(),
+            'SEM1': float(data.get('SEM1', existing.get('SEM1', 0)) or 0),
+            'SEM2': float(data.get('SEM2', existing.get('SEM2', 0)) or 0),
+            'SEM3': float(data.get('SEM3', existing.get('SEM3', 0)) or 0),
+            'SEM4': float(data.get('SEM4', existing.get('SEM4', 0)) or 0),
+            'SEM5': float(data.get('SEM5', existing.get('SEM5', 0)) or 0),
+            'SEM6': float(data.get('SEM6', existing.get('SEM6', 0)) or 0),
+            'SEM7': float(data.get('SEM7', existing.get('SEM7', 0)) or 0),
+            'SEM8': float(data.get('SEM8', existing.get('SEM8', 0)) or 0),
+            'INTERNAL_MARKS': float(data.get('INTERNAL_MARKS', existing.get('INTERNAL_MARKS', 20)) or 20),
+            'TOTAL_DAYS_CURR': float(data.get('TOTAL_DAYS_CURR', existing.get('TOTAL_DAYS_CURR', 90)) or 90),
+            'ATTENDED_DAYS_CURR': float(data.get('ATTENDED_DAYS_CURR', existing.get('ATTENDED_DAYS_CURR', 80)) or 80),
+            'PREV_ATTENDANCE_PERC': float(data.get('PREV_ATTENDANCE_PERC', existing.get('PREV_ATTENDANCE_PERC', 85)) or 85),
+            'BEHAVIOR_SCORE_10': float(data.get('BEHAVIOR_SCORE_10', existing.get('BEHAVIOR_SCORE_10', 7)) or 7)
         }
         
         # Recompute features and predictions
         feats = compute_features(updated_data)
         preds = predict_student(feats)
         
-        # Update DS3
-        for key, value in updated_data.items():
-            if key in data_source.columns:
-                data_source.loc[idx, key] = value
+        # Merge all updates
+        full_update = updated_data.copy()
+        full_update.update(feats)
+        full_update.update(preds)
         
-        for key, value in feats.items():
-            if key in data_source.columns:
-                data_source.loc[idx, key] = value
+        # Update in MySQL
+        success = update_student(rno, full_update)
         
-        for key, value in preds.items():
-            if key in data_source.columns:
-                data_source.loc[idx, key] = value
-        
-        # Save DS3
-        ds3_path = os.path.join(DATA_DIR, "DS3_full_report.csv")
-        data_source.to_csv(ds3_path, index=False)
-        DS3 = data_source
-        
-        # Update DS1 if exists
-        ds1_path = os.path.join(DATA_DIR, "DS1.csv")
-        if os.path.exists(ds1_path):
-            DS1 = safe_read_csv(ds1_path)
-            ds1_idx = DS1[DS1["RNO"].astype(str).str.strip() == rno].index
-            if len(ds1_idx) > 0:
-                for key, value in updated_data.items():
-                    if key in DS1.columns:
-                        DS1.loc[ds1_idx[0], key] = value
-                DS1.to_csv(ds1_path, index=False)
-        
-        # Prepare response
-        full_record = updated_data.copy()
-        full_record.update(feats)
-        full_record.update(preds)
-        full_record['RNO'] = rno
-        
-        return jsonify({
-            "success": True,
-            "message": "Student updated successfully",
-            "student": to_py(full_record)
-        })
+        if success:
+            full_record = full_update.copy()
+            full_record['RNO'] = rno
+            return jsonify({
+                "success": True,
+                "message": "Student updated successfully",
+                "student": to_py(full_record)
+            })
+        else:
+            return jsonify({"success": False, "message": "Failed to update student"}), 500
         
     except Exception as e:
         print(f"[ERR] Update student: {e}")
@@ -1427,9 +1241,7 @@ def api_update_student():
 
 @app.route("/api/student/delete", methods=["POST"])
 def api_delete_student():
-    """Delete student record"""
-    global DS1, DS3
-    
+    """Delete student record from MySQL"""
     try:
         data = request.get_json(silent=True) or {}
         rno = data.get("rno", "").strip()
@@ -1437,41 +1249,27 @@ def api_delete_student():
         if not rno:
             return jsonify({"success": False, "message": "RNO is required for deletion"}), 400
         
-        # Find and delete from DS3
-        data_source = load_ds3_data()
-        if data_source.empty:
-            return jsonify({"success": False, "message": "No student data available"}), 400
-        
-        student_rows = data_source[data_source["RNO"].astype(str).str.strip() == rno]
-        if student_rows.empty:
+        # Get student info before deletion
+        student = get_student_by_rno(rno)
+        if not student:
             return jsonify({"success": False, "message": "Student not found"}), 404
         
-        # Get student info before deletion
-        student_info = student_rows.iloc[0].to_dict()
+        # Delete from MySQL
+        success = delete_student(rno)
         
-        # Remove from DS3
-        data_source = data_source[data_source["RNO"].astype(str).str.strip() != rno]
-        ds3_path = os.path.join(DATA_DIR, "DS3_full_report.csv")
-        data_source.to_csv(ds3_path, index=False)
-        DS3 = data_source
-        
-        # Remove from DS1 if exists
-        ds1_path = os.path.join(DATA_DIR, "DS1.csv")
-        if os.path.exists(ds1_path):
-            DS1 = safe_read_csv(ds1_path)
-            DS1 = DS1[DS1["RNO"].astype(str).str.strip() != rno]
-            DS1.to_csv(ds1_path, index=False)
-        
-        return jsonify({
-            "success": True,
-            "message": f"Student {student_info.get('NAME', '')} ({rno}) deleted successfully",
-            "deleted_student": {
-                "RNO": rno,
-                "NAME": str(student_info.get('NAME', '')),
-                "DEPT": str(student_info.get('DEPT', '')),
-                "YEAR": safe_int(student_info.get('YEAR', 0))
-            }
-        })
+        if success:
+            return jsonify({
+                "success": True,
+                "message": f"Student {student.get('NAME', '')} ({rno}) deleted successfully",
+                "deleted_student": {
+                    "RNO": rno,
+                    "NAME": str(student.get('NAME', '')),
+                    "DEPT": str(student.get('DEPT', '')),
+                    "YEAR": safe_int(student.get('YEAR', 0))
+                }
+            })
+        else:
+            return jsonify({"success": False, "message": "Failed to delete student"}), 500
         
     except Exception as e:
         print(f"[ERR] Delete student: {e}")
@@ -1479,19 +1277,20 @@ def api_delete_student():
 
 @app.route("/api/students/list", methods=["GET"])
 def api_list_students():
-    """List all students with pagination"""
+    """List all students with pagination from MySQL"""
     try:
         page = int(request.args.get('page', 1))
         per_page = int(request.args.get('per_page', 50))
         dept_filter = request.args.get('dept', '')
         year_filter = request.args.get('year', '')
         
-        data_source = load_ds3_data()
-        if data_source.empty:
+        # Load from MySQL
+        df = load_students_df()
+        if df.empty:
             return jsonify({"success": False, "message": "No student data available"})
         
         # Apply filters
-        filtered_data = data_source.copy()
+        filtered_data = df.copy()
         if dept_filter:
             filtered_data = filtered_data[filtered_data["DEPT"].astype(str).str.strip() == dept_filter]
         if year_filter:

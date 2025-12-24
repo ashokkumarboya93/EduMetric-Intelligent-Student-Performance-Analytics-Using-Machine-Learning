@@ -1614,3 +1614,4 @@ attendance_pct,behavior_pct,SEM7,dropout_score,CURR_SEM,SEM2,past_count,INTERNAL
 47.83,40.0,0.0,51.51,6.0,42.0,5,20.0,0.0,50.87,MECH,RNO9007,2.0,50.0,120.0,normal,7.0,ethan.taylor@uni.edu,49.13,high,4.0,43.4,0.0,40.0,mentor4@uni.edu,3.0,66.67,58.0,Dr.Mark,44.0,45.0,48.33,medium,Ethan Taylor,50.0,46.0
 32.93,20.0,0.0,67.1,6.0,30.0,5,14.0,0.0,35.84,MECH,RNO9008,1.0,38.0,120.0,normal,8.0,mia.anderson@uni.edu,64.16,medium,2.0,31.8,0.0,28.0,mentor4@uni.edu,3.0,46.67,40.0,Dr.Mark,34.0,32.0,33.33,medium,Mia Anderson,38.0,35.0
 88.22,90.0,77.0,13.31,8.0,79.0,7,25.0,0.0,80.73,CSE(AI),22G31A3167,-4.0,85.0,90.0,low,,rajesh@gmail.com,19.27,high,9.0,76.0,81.0,72.0,dhruva143@gmail.com,4.0,83.33,80.0,Dhruva,78.0,74.0,88.89,low,RAJESH,85.0,71.0
+87.22,80.0,0.0,13.14,7.0,87.0,6,28.0,0.0,87.42,CSE(AI),22G31A3138,8.0,85.0,90.0,low,,balaji@gmail.com,12.58,high,8.0,84.67,86.0,90.0,jayamma@gmail.com,4.0,93.33,80.0,Jayamma,84.0,83.0,88.89,low,BALAJI,85.0,78.0
