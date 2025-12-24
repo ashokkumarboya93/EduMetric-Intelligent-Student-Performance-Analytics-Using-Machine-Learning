@@ -1,15 +1,11 @@
 import mysql.connector
 from mysql.connector import Error
 import pandas as pd
+from config import DB_CONFIG
 
 def get_db_connection():
     try:
-        connection = mysql.connector.connect(
-            host='localhost',
-            database='edumetric_db',
-            user='root',
-            password='A$hok3117'
-        )
+        connection = mysql.connector.connect(**DB_CONFIG)
         return connection
     except Error as e:
         print(f"Error connecting to MySQL: {e}")

@@ -10,6 +10,7 @@ from db import (
     load_students_df, get_student_by_rno, insert_student, 
     update_student, delete_student, batch_insert_students, get_stats
 )
+from config import SECRET_KEY, DEBUG, EMAIL_USER, EMAIL_PASSWORD
 
 try:
     from fpdf import FPDF
@@ -45,6 +46,8 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DATA_DIR = os.path.join(BASE_DIR, r"data")
 
 app = Flask(__name__)
+app.secret_key = SECRET_KEY
+app.config['DEBUG'] = DEBUG
 
 # ===========================================================
 # UNIVERSAL FIX: NUMPY/PANDAS → PYTHON TYPES
@@ -802,8 +805,8 @@ def api_send_alert():
 </div>
 """
 
-    FROM = "ashokkumarboya93@gmail.com"
-    PASS = "lubwbacntoubetxb"  # use env var in real project
+    FROM = EMAIL_USER
+    PASS = EMAIL_PASSWORD
 
     # Use MIMEText with "html" for proper HTML email rendering
     msg = MIMEText(html_body, "html")
