@@ -24,6 +24,10 @@ def load_students_df():
         
         df = pd.read_sql("SELECT * FROM students", conn)
         conn.close()
+        
+        # Convert column names to uppercase to match existing code
+        df.columns = df.columns.str.upper()
+        
         return df
     except Exception as e:
         print(f"Error loading students from MySQL: {e}")
@@ -34,9 +38,14 @@ def get_student_by_rno(rno):
     try:
         conn = get_db_connection()
         cursor = conn.cursor(dictionary=True)
-        cursor.execute("SELECT * FROM students WHERE RNO = %s", (rno,))
+        cursor.execute("SELECT * FROM students WHERE rno = %s", (rno,))
         student = cursor.fetchone()
         conn.close()
+        
+        if student:
+            # Convert keys to uppercase
+            student = {k.upper(): v for k, v in student.items()}
+        
         return student
     except Exception as e:
         print(f"Error fetching student {rno}: {e}")
