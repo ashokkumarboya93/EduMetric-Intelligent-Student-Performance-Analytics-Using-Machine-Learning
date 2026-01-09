@@ -1412,6 +1412,7 @@ async function analyseDepartment() {
         // Add drill-down handlers for department charts
         setTimeout(() => {
             addDepartmentDrilldownHandlers(dept, year);
+            addChartClickHandlers('department', dept, year);
         }, 1000);
         
         const summaryEl = document.getElementById("dept-summary");
@@ -1506,7 +1507,7 @@ async function analyseYear() {
     }
     
     const payload = { year: year };
-    showLoading("Analysing year...");
+    showLoading(`Analysing Year ${year} - Following Year-wise Analytics Specification...`);
     
     try {
         const res = await api("/api/year/analyze", "POST", payload);
@@ -1521,11 +1522,13 @@ async function analyseYear() {
         if (reportDiv) reportDiv.classList.remove("hidden");
         
         const st = res.stats || {};
+        
+        // MANDATORY KPIs following year-wise analytics specification
         const elements = {
             "year-kpi-total": `<i class="fa-solid fa-users"></i> Total Students<br><b>${st.total_students || 0}</b>`,
-            "year-kpi-avg-perf": `<i class="fa-solid fa-chart-line"></i> Avg Performance<br><b>${st.avg_performance || 0}%</b>`,
+            "year-kpi-high-perf": `<i class="fa-solid fa-graduation-cap"></i> High Performers<br><b>${st.high_performers || 0}</b>`,
             "year-kpi-high-risk": `<i class="fa-solid fa-triangle-exclamation"></i> High Risk<br><b>${st.high_risk || 0}</b>`,
-            "year-kpi-high-drop": `<i class="fa-solid fa-user-xmark"></i> High Dropout<br><b>${st.high_dropout || 0}</b>`
+            "year-kpi-avg-att": `<i class="fa-solid fa-calendar-check"></i> Avg Attendance<br><b>${st.avg_attendance || 0}%</b>`
         };
         
         Object.entries(elements).forEach(([id, html]) => {
@@ -1533,78 +1536,263 @@ async function analyseYear() {
             if (el) el.innerHTML = html;
         });
         
+        // Fill table with year-filtered data (SAFETY RULE: year-first filtering)
         fillGroupTable("year-table", (res.table || []).slice(0, 120), true);
-        renderLabelDonut("year-chart-perf-donut", res.label_counts?.performance || {}, "Performance Labels");
-        render3DScatter("year-chart-3d", res.scores || {performance: [], risk: [], dropout: []}, "3D Performance-Risk-Dropout");
         
-        // Add drill-down handlers for year charts
+        // 1. PERFORMANCE DISTRIBUTION ANALYTICS (MANDATORY)
+        if (document.getElementById("year-chart-perf-donut")) {
+            const perfCounts = res.label_counts?.performance || {};
+            console.log('Performance counts:', perfCounts);
+            const labels = Object.keys(perfCounts).filter(k => perfCounts[k] > 0);
+            const values = labels.map(k => perfCounts[k]);
+            const colors = labels.map(k => k === 'high' ? '#4CAF50' : k === 'medium' ? '#FF9800' : '#F44336');
+            
+            if (labels.length === 0 || values.every(v => v === 0)) {
+                document.getElementById("year-chart-perf-donut").innerHTML = `<div style="display: flex; align-items: center; justify-content: center; height: 400px; color: #666; font-size: 16px;">No performance data available for Year ${year}</div>`;
+            } else {
+                const layout = {
+                    title: { text: `Year ${year} Performance Distribution`, font: { size: 16, color: '#1976d2' } },
+                    height: 400,
+                    showlegend: true,
+                    legend: { orientation: 'h', y: -0.1 }
+                };
+                
+                Plotly.newPlot("year-chart-perf-donut", [{
+                    labels: labels.map(l => l.toUpperCase()), 
+                    values: values,
+                    type: "pie", 
+                    hole: 0.4,
+                    marker: { colors: colors },
+                    textinfo: 'label+percent+value',
+                    hovertemplate: '<b>%{label}</b><br>Students: %{value}<br>Percentage: %{percent}<extra></extra>'
+                }], layout, window.defaultChartConfig);
+            }
+        }
+        
+        // 2. DEPARTMENT-WISE PERFORMANCE RANKING (CRITICAL INSIGHT)
+        if (document.getElementById("year-chart-dept-ranking")) {
+            const deptPerf = res.department_performance || {};
+            const depts = Object.keys(deptPerf).sort((a, b) => deptPerf[b] - deptPerf[a]);
+            const perfScores = depts.map(d => deptPerf[d]);
+            
+            if (depts.length === 0) {
+                document.getElementById("year-chart-dept-ranking").innerHTML = `<div style="display: flex; align-items: center; justify-content: center; height: 400px; color: #666; font-size: 16px;">No department data available for Year ${year}</div>`;
+            } else {
+                const layout = {
+                    title: { text: `Year ${year} Department Performance Ranking`, font: { size: 16, color: '#1976d2' } },
+                    xaxis: { title: "Department" },
+                    yaxis: { title: "Average Performance (%)" },
+                    height: 400
+                };
+                
+                Plotly.newPlot("year-chart-dept-ranking", [{
+                    x: depts.map(d => d.toUpperCase()),
+                    y: perfScores,
+                    type: "bar",
+                    marker: { 
+                        color: perfScores,
+                        colorscale: 'RdYlGn',
+                        showscale: true,
+                        colorbar: { title: "Performance %" }
+                    },
+                    text: perfScores.map(p => p.toFixed(1) + '%'),
+                    textposition: 'outside',
+                    hovertemplate: '<b>%{x}</b><br>Avg Performance: %{y:.1f}%<extra></extra>'
+                }], layout, window.defaultChartConfig);
+            }
+        }
+        
+        // 3. RISK AND DROPOUT ANALYTICS (MANDATORY)
+        if (document.getElementById("year-chart-risk-donut")) {
+            const riskCounts = res.label_counts?.risk || {};
+            console.log('Risk counts:', riskCounts);
+            const riskLabels = Object.keys(riskCounts).filter(k => riskCounts[k] > 0);
+            const riskValues = riskLabels.map(k => riskCounts[k]);
+            const riskColors = riskLabels.map(k => k === 'high' ? '#F44336' : k === 'medium' ? '#FF9800' : '#4CAF50');
+            
+            if (riskLabels.length === 0 || riskValues.every(v => v === 0)) {
+                document.getElementById("year-chart-risk-donut").innerHTML = `<div style="display: flex; align-items: center; justify-content: center; height: 400px; color: #666; font-size: 16px;">No risk data available for Year ${year}</div>`;
+            } else {
+                const layout = {
+                    title: { text: `Year ${year} Risk Distribution`, font: { size: 16, color: '#1976d2' } },
+                    height: 400,
+                    showlegend: true,
+                    legend: { orientation: 'h', y: -0.1 }
+                };
+                
+                Plotly.newPlot("year-chart-risk-donut", [{
+                    labels: riskLabels.map(l => l.toUpperCase() + ' RISK'), 
+                    values: riskValues,
+                    type: "pie", 
+                    hole: 0.4,
+                    marker: { colors: riskColors },
+                    textinfo: 'label+percent+value',
+                    hovertemplate: '<b>%{label}</b><br>Students: %{value}<br>Percentage: %{percent}<extra></extra>'
+                }], layout, window.defaultChartConfig);
+            }
+        }
+        
+        // 4. ATTENDANCE VS PERFORMANCE INSIGHT (CRITICAL INSIGHT)
+        if (document.getElementById("year-chart-attendance-perf")) {
+            const attendanceData = res.attendance_performance || [];
+            
+            if (attendanceData.length === 0) {
+                document.getElementById("year-chart-attendance-perf").innerHTML = `<div style="display: flex; align-items: center; justify-content: center; height: 400px; color: #666; font-size: 16px;">No attendance data available for Year ${year}</div>`;
+            } else {
+                const layout = {
+                    title: { text: `Year ${year} Attendance vs Performance Analysis`, font: { size: 16, color: '#1976d2' } },
+                    xaxis: { title: "Attendance (%)" },
+                    yaxis: { title: "Performance (%)" },
+                    height: 400
+                };
+                
+                Plotly.newPlot("year-chart-attendance-perf", [{
+                    x: attendanceData.map(d => d.attendance),
+                    y: attendanceData.map(d => d.performance),
+                    mode: "markers",
+                    type: "scatter",
+                    marker: { 
+                        color: attendanceData.map(d => d.performance),
+                        colorscale: 'RdYlGn',
+                        showscale: true,
+                        size: 8,
+                        opacity: 0.7
+                    },
+                    hovertemplate: '<b>Student</b><br>Attendance: %{x:.1f}%<br>Performance: %{y:.1f}%<extra></extra>'
+                }], layout, window.defaultChartConfig);
+            }
+        }
+        
+        // 5. DEPARTMENT-WISE RISK CONCENTRATION (CRITICAL INSIGHT)
+        if (document.getElementById("year-chart-dept-risk")) {
+            const deptRisk = res.department_risk || {};
+            const riskDepts = Object.keys(deptRisk);
+            const riskCounts = riskDepts.map(d => deptRisk[d]);
+            
+            if (riskDepts.length === 0) {
+                document.getElementById("year-chart-dept-risk").innerHTML = `<div style="display: flex; align-items: center; justify-content: center; height: 400px; color: #666; font-size: 16px;">No department risk data available for Year ${year}</div>`;
+            } else {
+                const layout = {
+                    title: { text: `Year ${year} Department Risk Concentration`, font: { size: 16, color: '#1976d2' } },
+                    xaxis: { title: "Department" },
+                    yaxis: { title: "High Risk Students" },
+                    height: 400
+                };
+                
+                Plotly.newPlot("year-chart-dept-risk", [{
+                    x: riskDepts.map(d => d.toUpperCase()),
+                    y: riskCounts,
+                    type: "bar",
+                    marker: { 
+                        color: riskCounts,
+                        colorscale: 'Reds',
+                        showscale: true
+                    },
+                    text: riskCounts,
+                    textposition: 'outside',
+                    hovertemplate: '<b>%{x}</b><br>High Risk Students: %{y}<extra></extra>'
+                }], layout, window.defaultChartConfig);
+            }
+        }
+        
+        // Add drill-down handlers for year charts (SAFETY RULES)
         setTimeout(() => {
             addYearDrilldownHandlers(year);
+            addChartClickHandlers('year', year);
         }, 1000);
         
-        if (document.getElementById("year-chart-box")) {
-            const boxLayout = {
-                ...window.defaultLayout,
-                title: {
-                    text: "Performance Spread Analysis",
-                    font: { size: 18, color: '#1976d2' },
-                    x: 0.5
-                },
-                yaxis: {
-                    title: { text: 'Performance Score (%)', font: { size: 14 } },
-                    gridcolor: 'rgba(0,0,0,0.1)'
-                },
-                height: 450
-            };
-            
-            Plotly.newPlot("year-chart-box", [{ 
-                y: res.scores?.performance || [], 
-                type: "box", 
-                name: "Performance",
-                marker: { color: '#2196F3' },
-                boxpoints: 'outliers',
-                jitter: 0.3,
-                pointpos: -1.8,
-                hovertemplate: '<b>Performance Distribution</b><br>Value: %{y:.1f}%<extra></extra>'
-            }], boxLayout, window.defaultChartConfig);
-        }
-        
-        if (document.getElementById("year-chart-hist")) {
-            const histLayout = {
-                ...window.defaultLayout,
-                title: {
-                    text: "Performance Distribution Histogram",
-                    font: { size: 18, color: '#1976d2' },
-                    x: 0.5
-                },
-                xaxis: {
-                    title: { text: 'Performance Score (%)', font: { size: 14 } },
-                    gridcolor: 'rgba(0,0,0,0.1)'
-                },
-                yaxis: {
-                    title: { text: 'Number of Students', font: { size: 14 } },
-                    gridcolor: 'rgba(0,0,0,0.1)'
-                },
-                height: 450
-            };
-            
-            Plotly.newPlot("year-chart-hist", [{ 
-                x: res.scores?.performance || [], 
-                type: "histogram",
-                marker: { 
-                    color: '#4CAF50',
-                    line: { color: '#fff', width: 1 }
-                },
-                nbinsx: 20,
-                hovertemplate: '<b>Performance Range</b><br>Score: %{x:.1f}%<br>Count: %{y}<extra></extra>'
-            }], histLayout, window.defaultChartConfig);
-        }
-        
+        // ANALYTICS SUMMARY (TEXT INSIGHT) - MANDATORY
         const summaryEl = document.getElementById("year-summary");
         if (summaryEl) {
+            const avgPerf = st.avg_performance || 0;
+            const avgRisk = st.avg_risk || 0;
+            const avgAtt = st.avg_attendance || 0;
+            const totalStudents = st.total_students || 0;
+            const highRiskCount = st.high_risk || 0;
+            
+            const perfLevel = avgPerf >= 75 ? "excellent" : avgPerf >= 60 ? "good" : avgPerf >= 50 ? "moderate" : "concerning";
+            const riskLevel = avgRisk >= 70 ? "high" : avgRisk >= 40 ? "moderate" : "low";
+            const attLevel = avgAtt >= 85 ? "excellent" : avgAtt >= 75 ? "good" : avgAtt >= 60 ? "moderate" : "critical";
+            
             summaryEl.innerHTML = `
-                <p>Total students: <b>${st.total_students || 0}</b></p>
-                <p>Avg Performance: <b>${st.avg_performance || 0}%</b></p>`;
+                <p><i class="fa-solid fa-chart-bar"></i> <strong>Year ${year} Academic Health Overview:</strong> ${totalStudents} students with ${perfLevel} average performance (${avgPerf.toFixed(1)}%). This academic year shows ${riskLevel} risk level with ${avgRisk.toFixed(1)}% average risk score.</p>
+                <p><i class="fa-solid fa-users"></i> <strong>Performance Distribution:</strong> ${st.high_performers || 0} high performers (${((st.high_performers || 0) / totalStudents * 100).toFixed(1)}%), ${highRiskCount} high-risk students requiring immediate attention (${(highRiskCount / totalStudents * 100).toFixed(1)}%).</p>
+                <p><i class="fa-solid fa-calendar-check"></i> <strong>Attendance Analysis:</strong> ${attLevel} level with ${avgAtt.toFixed(1)}% average attendance across all departments in Year ${year}. Strong correlation observed between attendance and academic performance.</p>
+            `;
+        }
+        
+        // SUGGESTIONS (ACTIONABLE RECOMMENDATIONS) - MANDATORY
+        const suggestionsEl = document.getElementById("year-suggestions");
+        if (suggestionsEl) {
+            suggestionsEl.innerHTML = "";
+            const suggestions = [];
+            
+            const avgPerf = st.avg_performance || 0;
+            const avgRisk = st.avg_risk || 0;
+            const avgAtt = st.avg_attendance || 0;
+            const highRiskCount = st.high_risk || 0;
+            const totalStudents = st.total_students || 0;
+            
+            // Year-specific performance suggestions (ACTIONABLE)
+            if (avgPerf < 50) {
+                suggestions.push(`<strong>CRITICAL YEAR ALERT:</strong> Year ${year} performance is concerning (${avgPerf.toFixed(1)}%). Implement immediate year-wide remedial programs and intensive faculty coordination.`);
+                suggestions.push(`Conduct Year ${year} academic review meeting with all department HODs to identify systemic issues affecting student performance.`);
+                suggestions.push(`Establish Year ${year} emergency intervention task force with weekly monitoring for all students below 50% performance.`);
+            } else if (avgPerf < 60) {
+                suggestions.push(`Year ${year} performance needs improvement (${avgPerf.toFixed(1)}%). Organize inter-departmental peer tutoring and additional support sessions.`);
+                suggestions.push(`Increase faculty coordination for Year ${year} with bi-weekly progress reviews and targeted interventions.`);
+            } else if (avgPerf >= 75) {
+                suggestions.push(`<strong>Excellent!</strong> Year ${year} shows strong performance (${avgPerf.toFixed(1)}%). Consider advanced learning opportunities and research project initiatives.`);
+                suggestions.push(`Encourage Year ${year} top performers to mentor junior years and participate in academic competitions.`);
+            }
+            
+            // Risk-based year suggestions (TARGETED INTERVENTION)
+            if (avgRisk >= 70 || highRiskCount > totalStudents * 0.2) {
+                suggestions.push(`<strong>HIGH RISK YEAR:</strong> Year ${year} has ${highRiskCount} high-risk students (${(highRiskCount/totalStudents*100).toFixed(1)}%). Establish year-specific intervention task force with daily monitoring.`);
+                suggestions.push(`Implement early warning system for Year ${year} with automated alerts for declining performance trends and immediate mentor assignment.`);
+            } else if (avgRisk >= 40) {
+                suggestions.push(`Moderate risk detected in Year ${year}. Increase mentor-student interaction frequency to bi-weekly sessions across all departments.`);
+                suggestions.push(`Create Year ${year} peer support groups to help struggling students and prevent academic decline.`);
+            }
+            
+            // Attendance-based year suggestions (RETENTION STRATEGY)
+            if (avgAtt < 60) {
+                suggestions.push(`<strong>CRITICAL ATTENDANCE ISSUE:</strong> Year ${year} attendance is critically low (${avgAtt.toFixed(1)}%). Investigate year-specific causes and implement daily monitoring with immediate follow-up.`);
+                suggestions.push(`Engage Year ${year} parents through automated attendance alerts and monthly progress meetings to improve retention.`);
+            } else if (avgAtt < 75) {
+                suggestions.push(`Year ${year} attendance below optimal level (${avgAtt.toFixed(1)}%). Create structured improvement plan with weekly targets and year-specific incentives.`);
+                suggestions.push(`Implement Year ${year} attendance rewards program to motivate consistent participation and academic engagement.`);
+            }
+            
+            // Department-specific suggestions (TARGETED SUPPORT)
+            const deptPerf = res.department_performance || {};
+            const weakDepts = Object.keys(deptPerf).filter(d => deptPerf[d] < 50);
+            const strongDepts = Object.keys(deptPerf).filter(d => deptPerf[d] >= 75);
+            
+            if (weakDepts.length > 0) {
+                suggestions.push(`<strong>DEPARTMENT FOCUS:</strong> In Year ${year}, departments ${weakDepts.join(', ')} need immediate attention with performance below 50%. Assign dedicated faculty mentors.`);
+                suggestions.push(`Organize department-specific remedial sessions for Year ${year} students in underperforming departments with intensive skill-building programs.`);
+            }
+            
+            if (strongDepts.length > 0) {
+                suggestions.push(`<strong>EXCELLENCE RECOGNITION:</strong> Departments ${strongDepts.join(', ')} in Year ${year} show excellent performance. Use as mentoring models for other departments.`);
+            }
+            
+            // Default suggestions if performance is satisfactory
+            if (suggestions.length === 0) {
+                suggestions.push(`Year ${year} performance is satisfactory (${avgPerf.toFixed(1)}%). Continue current strategies and maintain regular monitoring with quarterly assessments.`);
+                suggestions.push(`Focus on continuous improvement for Year ${year} through feedback collection, periodic assessments, and proactive student engagement initiatives.`);
+            }
+            
+            // Add year-specific action items
+            suggestions.push(`<strong>IMMEDIATE ACTIONS:</strong> Schedule Year ${year} faculty meeting within 48 hours to discuss findings and implement targeted interventions.`);
+            suggestions.push(`<strong>MONITORING:</strong> Establish weekly progress tracking for Year ${year} with specific, measurable goals and regular reporting to management.`);
+            
+            suggestions.forEach(s => {
+                const li = document.createElement("li");
+                li.innerHTML = `<i class="fa-solid fa-lightbulb" style="color: #1976d2; margin-right: 8px;"></i>${s}`;
+                suggestionsEl.appendChild(li);
+            });
         }
     } catch (error) {
         hideLoading();
@@ -1614,7 +1802,7 @@ async function analyseYear() {
 }
 
 async function analyseCollege() {
-    showLoading("Analysing college...");
+    showLoading("Analysing college - Following College-Level Analytics Specification...");
     
     try {
         const res = await api("/api/college/analyze", "GET");
@@ -1629,11 +1817,13 @@ async function analyseCollege() {
         if (reportDiv) reportDiv.classList.remove("hidden");
         
         const st = res.stats || {};
+        
+        // COLLEGE-LEVEL KPIs (TOP-LEVEL SNAPSHOT)
         const elements = {
-            "clg-kpi-total": `<i class="fa-solid fa-users"></i> Sample Size<br><b>${res.sample_size || 0}</b>`,
-            "clg-kpi-avg-perf": `<i class="fa-solid fa-chart-line"></i> Avg Performance<br><b>${st.avg_performance || 0}%</b>`,
+            "clg-kpi-total": `<i class="fa-solid fa-users"></i> Total Students<br><b>${st.total_students || 0}</b>`,
+            "clg-kpi-high-perf": `<i class="fa-solid fa-graduation-cap"></i> High Performers<br><b>${st.high_performers || 0}</b>`,
             "clg-kpi-high-risk": `<i class="fa-solid fa-triangle-exclamation"></i> High Risk<br><b>${st.high_risk || 0}</b>`,
-            "clg-kpi-high-drop": `<i class="fa-solid fa-user-xmark"></i> High Dropout<br><b>${st.high_dropout || 0}</b>`
+            "clg-kpi-avg-att": `<i class="fa-solid fa-calendar-check"></i> Avg Attendance<br><b>${st.avg_attendance || 0}%</b>`
         };
         
         Object.entries(elements).forEach(([id, html]) => {
@@ -1641,49 +1831,189 @@ async function analyseCollege() {
             if (el) el.innerHTML = html;
         });
         
+        // Fill table with ALL students (NO FILTERS)
         fillGroupTable("clg-table", (res.table || []).slice(0, 150), true);
-        renderLabelDonut("clg-chart-perf-donut", res.label_counts?.performance || {}, "Performance");
-        renderLabelDonut("clg-chart-risk-donut", res.label_counts?.risk || {}, "Risk");
-        render3DScatter("clg-chart-3d", res.scores || {performance: [], risk: [], dropout: []}, "3D College Analysis");
         
-        // Add drill-down handlers for college charts
-        setTimeout(() => {
-            addCollegeDrilldownHandlers();
-        }, 1000);
-        
-        if (document.getElementById("clg-chart-box")) {
-            const boxLayout = {
-                ...window.defaultLayout,
-                title: {
-                    text: "College Performance Spread",
-                    font: { size: 18, color: '#1976d2' },
-                    x: 0.5
-                },
-                yaxis: {
-                    title: { text: 'Performance Score (%)', font: { size: 14 } },
-                    gridcolor: 'rgba(0,0,0,0.1)'
-                },
-                height: 450
-            };
+        // 1. OVERALL PERFORMANCE DISTRIBUTION ANALYTICS
+        if (document.getElementById("clg-chart-perf-donut")) {
+            const perfCounts = res.label_counts?.performance || {};
+            const labels = Object.keys(perfCounts).filter(k => perfCounts[k] > 0);
+            const values = labels.map(k => perfCounts[k]);
+            const colors = labels.map(k => k === 'high' ? '#4CAF50' : k === 'medium' ? '#FF9800' : '#F44336');
             
-            Plotly.newPlot("clg-chart-box", [{ 
-                y: res.scores?.performance || [], 
-                type: "box",
-                name: "College Performance",
-                marker: { color: '#FF9800' },
-                boxpoints: 'outliers',
-                jitter: 0.3,
-                pointpos: -1.8,
-                hovertemplate: '<b>College Performance</b><br>Value: %{y:.1f}%<extra></extra>'
-            }], boxLayout, window.defaultChartConfig);
+            if (labels.length === 0 || values.every(v => v === 0)) {
+                document.getElementById("clg-chart-perf-donut").innerHTML = `<div style="display: flex; align-items: center; justify-content: center; height: 400px; color: #666; font-size: 16px;">No performance data available</div>`;
+            } else {
+                const layout = {
+                    title: { text: 'Overall Performance Distribution', font: { size: 16, color: '#1976d2' } },
+                    height: 400,
+                    showlegend: true,
+                    legend: { orientation: 'h', y: -0.1 }
+                };
+                
+                Plotly.newPlot("clg-chart-perf-donut", [{
+                    labels: labels.map(l => l.toUpperCase()), 
+                    values: values,
+                    type: "pie", 
+                    hole: 0.4,
+                    marker: { colors: colors },
+                    textinfo: 'label+percent+value',
+                    hovertemplate: '<b>%{label}</b><br>Students: %{value}<br>Percentage: %{percent}<extra></extra>'
+                }], layout, window.defaultChartConfig);
+            }
         }
         
+        // 2. RISK DISTRIBUTION ANALYTICS
+        if (document.getElementById("clg-chart-risk-donut")) {
+            const riskCounts = res.label_counts?.risk || {};
+            const riskLabels = Object.keys(riskCounts).filter(k => riskCounts[k] > 0);
+            const riskValues = riskLabels.map(k => riskCounts[k]);
+            const riskColors = riskLabels.map(k => k === 'high' ? '#F44336' : k === 'medium' ? '#FF9800' : '#4CAF50');
+            
+            if (riskLabels.length === 0 || riskValues.every(v => v === 0)) {
+                document.getElementById("clg-chart-risk-donut").innerHTML = `<div style="display: flex; align-items: center; justify-content: center; height: 400px; color: #666; font-size: 16px;">No risk data available</div>`;
+            } else {
+                const layout = {
+                    title: { text: 'Risk Distribution Analytics', font: { size: 16, color: '#1976d2' } },
+                    height: 400,
+                    showlegend: true,
+                    legend: { orientation: 'h', y: -0.1 }
+                };
+                
+                Plotly.newPlot("clg-chart-risk-donut", [{
+                    labels: riskLabels.map(l => l.toUpperCase() + ' RISK'), 
+                    values: riskValues,
+                    type: "pie", 
+                    hole: 0.4,
+                    marker: { colors: riskColors },
+                    textinfo: 'label+percent+value',
+                    hovertemplate: '<b>%{label}</b><br>Students: %{value}<br>Percentage: %{percent}<extra></extra>'
+                }], layout, window.defaultChartConfig);
+            }
+        }
+        
+        // 3. DEPARTMENT-WISE PERFORMANCE COMPARISON (RANKING)
+        if (document.getElementById("clg-chart-dept-perf")) {
+            const deptPerf = res.department_performance || {};
+            const depts = Object.keys(deptPerf).sort((a, b) => deptPerf[b] - deptPerf[a]);
+            const perfScores = depts.map(d => deptPerf[d]);
+            
+            if (depts.length === 0) {
+                document.getElementById("clg-chart-dept-perf").innerHTML = `<div style="display: flex; align-items: center; justify-content: center; height: 400px; color: #666; font-size: 16px;">No department data available</div>`;
+            } else {
+                const layout = {
+                    title: { text: 'Department-wise Performance Comparison', font: { size: 16, color: '#1976d2' } },
+                    xaxis: { title: "Department" },
+                    yaxis: { title: "Average Performance (%)" },
+                    height: 400
+                };
+                
+                Plotly.newPlot("clg-chart-dept-perf", [{
+                    x: depts.map(d => d.toUpperCase()),
+                    y: perfScores,
+                    type: "bar",
+                    marker: { 
+                        color: perfScores,
+                        colorscale: 'RdYlGn',
+                        showscale: true,
+                        colorbar: { title: "Performance %" }
+                    },
+                    text: perfScores.map(p => p.toFixed(1) + '%'),
+                    textposition: 'outside',
+                    hovertemplate: '<b>%{x}</b><br>Avg Performance: %{y:.1f}%<extra></extra>'
+                }], layout, window.defaultChartConfig);
+            }
+        }
+        
+        // 4. YEAR-WISE PERFORMANCE TREND (COLLEGE CONTEXT)
+        if (document.getElementById("clg-chart-year-trend")) {
+            const yearPerf = res.year_performance || {};
+            const years = Object.keys(yearPerf).sort();
+            const yearPerfScores = years.map(y => yearPerf[y]);
+            
+            if (years.length === 0) {
+                document.getElementById("clg-chart-year-trend").innerHTML = `<div style="display: flex; align-items: center; justify-content: center; height: 400px; color: #666; font-size: 16px;">No year data available</div>`;
+            } else {
+                const layout = {
+                    title: { text: 'Year-wise Performance Trend', font: { size: 16, color: '#1976d2' } },
+                    xaxis: { title: "Academic Year" },
+                    yaxis: { title: "Average Performance (%)" },
+                    height: 400
+                };
+                
+                Plotly.newPlot("clg-chart-year-trend", [{
+                    x: years.map(y => `Year ${y}`),
+                    y: yearPerfScores,
+                    type: "scatter",
+                    mode: "lines+markers",
+                    line: { width: 3, color: '#1976d2' },
+                    marker: { size: 10, color: '#1976d2' },
+                    hovertemplate: '<b>%{x}</b><br>Avg Performance: %{y:.1f}%<extra></extra>'
+                }], layout, window.defaultChartConfig);
+            }
+        }
+        
+        // 5. ATTENDANCE VS OUTCOME INSIGHT (KEY NON-PREDICTIVE ANALYSIS)
+        if (document.getElementById("clg-chart-attendance")) {
+            const attendanceData = res.attendance_performance_data || [];
+            
+            if (attendanceData.length === 0) {
+                document.getElementById("clg-chart-attendance").innerHTML = `<div style="display: flex; align-items: center; justify-content: center; height: 400px; color: #666; font-size: 16px;">No attendance data available</div>`;
+            } else {
+                const layout = {
+                    title: { text: 'Attendance vs Performance Analysis', font: { size: 16, color: '#1976d2' } },
+                    xaxis: { title: "Attendance (%)" },
+                    yaxis: { title: "Performance (%)" },
+                    height: 400
+                };
+                
+                Plotly.newPlot("clg-chart-attendance", [{
+                    x: attendanceData.map(d => d.attendance),
+                    y: attendanceData.map(d => d.performance),
+                    mode: "markers",
+                    type: "scatter",
+                    marker: { 
+                        color: attendanceData.map(d => d.performance),
+                        colorscale: 'RdYlGn',
+                        showscale: true,
+                        size: 6,
+                        opacity: 0.7
+                    },
+                    hovertemplate: '<b>Student</b><br>Attendance: %{x:.1f}%<br>Performance: %{y:.1f}%<extra></extra>'
+                }], layout, window.defaultChartConfig);
+            }
+        }
+        
+        // Add drill-down handlers for college charts (CRITICAL FEATURE)
+        setTimeout(() => {
+            addCollegeDrilldownHandlers();
+            addChartClickHandlers('college');
+        }, 1000);
+        
+        // SUMMARY INSIGHTS (TEXT-BASED, DETERMINISTIC)
         const summaryEl = document.getElementById("clg-summary");
         if (summaryEl) {
-            summaryEl.innerHTML = `
-                <p>Sample students: <b>${res.sample_size || 0}</b></p>
-                <p>Total students: <b>${res.total_size || res.sample_size || 0}</b></p>
-                <p>Avg performance: <b>${st.avg_performance || 0}%</b></p>`;
+            const insights = res.insights || [];
+            summaryEl.innerHTML = '';
+            
+            insights.forEach(insight => {
+                const p = document.createElement('p');
+                p.innerHTML = `<i class="fa-solid fa-chart-bar"></i> <strong>${insight}</strong>`;
+                summaryEl.appendChild(p);
+            });
+        }
+        
+        // SUGGESTIONS (ACTION-ORIENTED, NOT PREDICTIVE)
+        const suggestionsEl = document.getElementById("clg-suggestions");
+        if (suggestionsEl) {
+            suggestionsEl.innerHTML = "";
+            const suggestions = res.suggestions || [];
+            
+            suggestions.forEach(s => {
+                const li = document.createElement("li");
+                li.innerHTML = `<i class="fa-solid fa-lightbulb" style="color: #1976d2; margin-right: 8px;"></i>${s}`;
+                suggestionsEl.appendChild(li);
+            });
         }
     } catch (error) {
         hideLoading();
@@ -2012,23 +2342,53 @@ async function uploadBatchFile(mode) {
     
     const formData = new FormData();
     formData.append("file", selectedFileNormalize);
-    formData.append("mode", mode);
     
-    showLoading("Normalizing data and generating predictions...");
+    showLoading("Processing batch upload...");
     
     try {
-        const response = await fetch("/api/batch-upload", { method: "POST", body: formData });
+        console.log('Uploading to:', '/api/students/batch-upload');
+        const response = await fetch("/api/students/batch-upload", { 
+            method: "POST", 
+            body: formData 
+        });
+        
+        console.log('Response status:', response.status);
+        console.log('Response headers:', response.headers);
+        
+        if (!response.ok) {
+            hideLoading();
+            if (response.status === 404) {
+                alert(`ERROR: Batch upload endpoint not found (404). Please ensure the Flask server is running and the endpoint exists.`);
+            } else {
+                const errorText = await response.text();
+                console.error('Server error response:', errorText);
+                alert(`ERROR: Server error (${response.status}). Please check the server logs.`);
+            }
+            return;
+        }
+        
+        const contentType = response.headers.get('content-type');
+        if (!contentType || !contentType.includes('application/json')) {
+            hideLoading();
+            const responseText = await response.text();
+            console.error('Non-JSON response:', responseText.substring(0, 200));
+            alert('ERROR: Server returned invalid response format. Expected JSON but got HTML/text.');
+            return;
+        }
+        
         const result = await response.json();
         hideLoading();
+        
+        console.log('Upload result:', result);
         
         if (result.success) {
             const resultDiv = document.getElementById("batch-result");
             if (resultDiv) resultDiv.classList.remove("hidden");
             
             const elements = {
-                "batch-processed-count": mode === 'normalize' ? `<i class="fa-solid fa-chart-bar"></i> Added<br><b>${result.added || 0}</b>` : `<i class="fa-solid fa-chart-bar"></i> Processed<br><b>${result.processed_rows || 0}</b>`,
-                "batch-total-count": mode === 'normalize' ? `<i class="fa-solid fa-users"></i> Total Records<br><b>${result.total_records || 0}</b>` : `<i class="fa-solid fa-users"></i> Total Students<br><b>${result.total_students || 0}</b>`,
-                "batch-alerts-sent": mode === 'normalize' ? `<i class="fa-solid fa-envelope"></i> Updated<br><b>${result.updated || 0}</b>` : `<i class="fa-solid fa-check-circle"></i> Success<br><b>Complete</b>`
+                "batch-processed-count": `<i class="fa-solid fa-chart-bar"></i> Created<br><b>${result.created_count || 0}</b>`,
+                "batch-total-count": `<i class="fa-solid fa-users"></i> Total Processed<br><b>${result.total_processed || 0}</b>`,
+                "batch-alerts-sent": `<i class="fa-solid fa-check-circle"></i> Success<br><b>Complete</b>`
             };
             
             Object.entries(elements).forEach(([id, html]) => {
@@ -2039,21 +2399,23 @@ async function uploadBatchFile(mode) {
             const messageEl = document.getElementById("batch-message-text");
             if (messageEl) messageEl.textContent = result.message;
             
-            if (mode === 'normalize') {
-                alert(`SUCCESS: Normalization Complete! Added ${result.added || 0} new students, updated ${result.updated || 0} existing students.`);
-            } else {
-                alert(`SUCCESS: Analytics Processing Complete! Processed ${result.processed_rows || 0} records.`);
-            }
-            
+            alert(`SUCCESS: ${result.message}`);
             await loadInitialStats(); 
             resetBatchUpload();
         } else {
-            alert(`ERROR: Upload failed: ${result.message}`);
+            alert(`ERROR: ${result.message}`);
+            if (result.errors && result.errors.length > 0) {
+                console.error('Upload errors:', result.errors);
+            }
         }
     } catch (error) {
         hideLoading(); 
         console.error("Upload error:", error);
-        alert("ERROR: Upload failed due to network error.");
+        if (error.name === 'SyntaxError' && error.message.includes('JSON')) {
+            alert("ERROR: Server returned invalid JSON response. This usually means the server is not running or returned an error page.");
+        } else {
+            alert("ERROR: Upload failed due to network error. Please check your connection and try again.");
+        }
     }
 }
 
@@ -2216,7 +2578,6 @@ async function createStudent() {
         'create-sem': 'Current Semester'
     };
     
-    // Validate required fields
     for (const [fieldId, fieldName] of Object.entries(requiredFields)) {
         const element = document.getElementById(fieldId);
         if (!element || !element.value.trim()) {
@@ -2226,7 +2587,6 @@ async function createStudent() {
         }
     }
     
-    // Collect semester marks
     const semesterMarks = {};
     for (let i = 1; i <= 8; i++) {
         const semInput = document.getElementById(`create-sem${i}`);
@@ -2242,15 +2602,25 @@ async function createStudent() {
         DEPT: document.getElementById('create-dept').value,
         YEAR: parseInt(document.getElementById('create-year').value),
         CURR_SEM: parseInt(document.getElementById('create-sem').value),
-        MENTOR: document.getElementById('create-mentor').value.trim(),
-        MENTOR_EMAIL: document.getElementById('create-mentor-email').value.trim(),
-        INTERNAL_MARKS: parseFloat(document.getElementById('create-internal').value || 20),
-        TOTAL_DAYS_CURR: parseFloat(document.getElementById('create-total-days').value || 90),
-        ATTENDED_DAYS_CURR: parseFloat(document.getElementById('create-attended-days').value || 80),
-        PREV_ATTENDANCE_PERC: parseFloat(document.getElementById('create-prev-att').value || 85),
-        BEHAVIOR_SCORE_10: parseFloat(document.getElementById('create-behavior').value || 7),
+        INTERNAL_MARKS: parseFloat(document.getElementById('create-internal')?.value || 20),
+        TOTAL_DAYS_CURR: parseFloat(document.getElementById('create-total-days')?.value || 90),
+        ATTENDED_DAYS_CURR: parseFloat(document.getElementById('create-attended-days')?.value || 80),
+        PREV_ATTENDANCE_PERC: parseFloat(document.getElementById('create-prev-att')?.value || 85),
+        BEHAVIOR_SCORE_10: parseFloat(document.getElementById('create-behavior')?.value || 7),
         ...semesterMarks
     };
+    
+    // Add optional mentor fields only if they exist and have values
+    const mentorField = document.getElementById('create-mentor');
+    const mentorEmailField = document.getElementById('create-mentor-email');
+    
+    if (mentorField && mentorField.value && mentorField.value.trim()) {
+        studentData.MENTOR = mentorField.value.trim();
+    }
+    
+    if (mentorEmailField && mentorEmailField.value && mentorEmailField.value.trim()) {
+        studentData.MENTOR_EMAIL = mentorEmailField.value.trim();
+    }
     
     showLoading('Creating student...');
     
@@ -2274,7 +2644,7 @@ async function createStudent() {
                 </button>
             `);
             resetCrudForms();
-            await loadInitialStats(); // Refresh stats
+            await loadInitialStats();
         } else {
             alert(`ERROR: Failed to create student: ${result.message}`);
         }
@@ -2406,7 +2776,6 @@ async function updateStudent() {
         return;
     }
     
-    // Collect semester marks
     const semesterMarks = {};
     for (let i = 1; i <= 8; i++) {
         const semInput = document.getElementById(`update-sem${i}`);
@@ -2423,6 +2792,7 @@ async function updateStudent() {
         YEAR: parseInt(document.getElementById('update-year').value),
         CURR_SEM: parseInt(document.getElementById('update-sem').value),
         INTERNAL_MARKS: parseFloat(document.getElementById('update-internal').value || 20),
+        BEHAVIOR_SCORE_10: parseFloat(document.getElementById('update-behavior')?.value || 7),
         ...semesterMarks
     };
     
@@ -2446,7 +2816,7 @@ async function updateStudent() {
                 </button>
             `);
             resetCrudForms();
-            await loadInitialStats(); // Refresh stats
+            await loadInitialStats();
         } else {
             alert(`ERROR: Failed to update student: ${result.message}`);
         }
@@ -2891,7 +3261,7 @@ function addDepartmentDrilldownHandlers(dept, year) {
 }
 
 function addYearDrilldownHandlers(year) {
-    const charts = ['year-chart-perf-donut', 'year-chart-3d', 'year-chart-box', 'year-chart-hist'];
+    const charts = ['year-chart-perf-donut', 'year-chart-dept-ranking', 'year-chart-risk-donut', 'year-chart-attendance-perf', 'year-chart-dept-risk'];
     addUniversalDrilldownHandlers(charts, 'year', year);
 }
 
@@ -2905,8 +3275,276 @@ function closeStudentModal() {
     if (modal) modal.classList.add('hidden');
 }
 /* ===========================================================
-   SIDEBAR TOGGLE FUNCTIONALITY
+   CHART CLICK HANDLERS FOR FILTERED PREVIEWS
    =========================================================== */
+function addChartClickHandlers(analyticsType, param1, param2) {
+    const chartIds = getChartIdsForAnalytics(analyticsType);
+    
+    chartIds.forEach(chartId => {
+        const chartElement = document.getElementById(chartId);
+        if (chartElement && chartElement.on) {
+            // Remove existing click handlers
+            chartElement.removeAllListeners && chartElement.removeAllListeners('plotly_click');
+            
+            chartElement.on('plotly_click', function(data) {
+                const point = data.points[0];
+                handleChartClick(point, chartId, analyticsType, param1, param2);
+            });
+        }
+    });
+}
+
+function getChartIdsForAnalytics(analyticsType) {
+    switch (analyticsType) {
+        case 'department':
+            return ['dept-chart-1', 'dept-chart-2', 'dept-chart-3', 'dept-chart-4', 'dept-chart-5'];
+        case 'year':
+            return ['year-chart-perf-donut', 'year-chart-dept-ranking', 'year-chart-risk-donut', 'year-chart-attendance-perf', 'year-chart-dept-risk'];
+        case 'college':
+            return ['clg-chart-perf-donut', 'clg-chart-risk-donut', 'clg-chart-3d', 'clg-chart-box'];
+        default:
+            return [];
+    }
+}
+
+function handleChartClick(point, chartId, analyticsType, param1, param2) {
+    let filterType, filterValue;
+    
+    // Determine filter based on chart type and clicked data
+    if (chartId.includes('perf')) {
+        filterType = 'performance_label';
+        filterValue = extractFilterValue(point, 'performance');
+    } else if (chartId.includes('risk')) {
+        filterType = 'risk_label';
+        filterValue = extractFilterValue(point, 'risk');
+    } else if (chartId.includes('drop')) {
+        filterType = 'dropout_label';
+        filterValue = extractFilterValue(point, 'dropout');
+    } else if (chartId.includes('3d')) {
+        // For 3D charts, show high performance students by default
+        filterType = 'performance_label';
+        filterValue = 'high';
+    } else if (chartId.includes('box') || chartId.includes('hist')) {
+        // For box/histogram charts, show students in clicked range
+        filterType = 'performance_range';
+        filterValue = getPerformanceRange(point.y || point.x);
+    } else {
+        // Default to performance filter
+        filterType = 'performance_label';
+        filterValue = 'high';
+    }
+    
+    // Show filtered preview
+    showFilteredPreview(filterType, filterValue, analyticsType, param1, param2);
+}
+
+function extractFilterValue(point, type) {
+    // Extract filter value from clicked point
+    let value = point.label || point.x || point.y;
+    
+    if (typeof value === 'string') {
+        value = value.toLowerCase();
+        // Map common variations
+        if (value.includes('high') || value.includes('excellent')) return 'high';
+        if (value.includes('medium') || value.includes('moderate')) return 'medium';
+        if (value.includes('low') || value.includes('poor')) return 'low';
+    }
+    
+    // Default based on type
+    return type === 'performance' ? 'high' : type === 'risk' ? 'high' : 'high';
+}
+
+function getPerformanceRange(value) {
+    if (value >= 80) return 'high';
+    if (value >= 60) return 'medium';
+    return 'low';
+}
+
+async function showFilteredPreview(filterType, filterValue, analyticsType, param1, param2) {
+    showLoading('Loading filtered students...');
+    
+    try {
+        const payload = {
+            filter_type: filterType,
+            filter_value: filterValue,
+            analytics_type: analyticsType
+        };
+        
+        // Add scope parameters
+        if (analyticsType === 'department') {
+            payload.department = param1;
+            payload.year = param2;
+        } else if (analyticsType === 'year') {
+            payload.year = param1;
+        }
+        
+        const result = await api('/api/analytics/filter-preview', 'POST', payload);
+        hideLoading();
+        
+        if (result.success) {
+            displayFilteredPreviewModal(result);
+        } else {
+            alert(result.message || 'Failed to load filtered data');
+        }
+    } catch (error) {
+        hideLoading();
+        console.error('Filter preview error:', error);
+        alert('Failed to load filtered preview. Please try again.');
+    }
+}
+
+function displayFilteredPreviewModal(result) {
+    // Create or get existing modal
+    let modal = document.getElementById('filter-preview-modal');
+    if (!modal) {
+        modal = createFilterPreviewModal();
+        document.body.appendChild(modal);
+    }
+    
+    // Update modal content
+    const title = modal.querySelector('.preview-title');
+    const count = modal.querySelector('.preview-count');
+    const tbody = modal.querySelector('.preview-table tbody');
+    
+    if (title) {
+        const filterDisplay = result.filter_info.type.replace('_label', '').replace('_', ' ').toUpperCase();
+        title.textContent = `${result.filter_info.value.toUpperCase()} ${filterDisplay} STUDENTS`;
+    }
+    
+    if (count) {
+        count.textContent = `${result.students.length} students found`;
+    }
+    
+    if (tbody) {
+        tbody.innerHTML = '';
+        
+        if (result.students.length === 0) {
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="8" style="text-align: center; padding: 30px; color: #666;">
+                        <i class="fa-solid fa-search" style="font-size: 24px; margin-bottom: 10px; display: block;"></i>
+                        No students found for this filter
+                    </td>
+                </tr>
+            `;
+        } else {
+            result.students.forEach(student => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${student.RNO}</td>
+                    <td>${student.NAME}</td>
+                    <td>${student.DEPT}</td>
+                    <td>${student.YEAR}</td>
+                    <td><span class="label-${student.performance_label}">${student.performance_label.toUpperCase()}</span></td>
+                    <td><span class="label-${student.risk_label}">${student.risk_label.toUpperCase()}</span></td>
+                    <td><span class="label-${student.dropout_label}">${student.dropout_label.toUpperCase()}</span></td>
+                    <td>
+                        <button class="view-btn" onclick="viewStudentFromPreview('${student.RNO}')" style="padding: 4px 8px; font-size: 12px;">
+                            <i class="fa-solid fa-eye"></i> View
+                        </button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+    }
+    
+    // Show modal
+    modal.classList.add('show');
+    modal.style.display = 'flex';
+}
+
+function createFilterPreviewModal() {
+    const modal = document.createElement('div');
+    modal.id = 'filter-preview-modal';
+    modal.className = 'filter-preview-modal';
+    modal.innerHTML = `
+        <div class="modal-content">
+            <div class="modal-header">
+                <div>
+                    <h3 class="preview-title">Filtered Students</h3>
+                    <span class="preview-count">0 students</span>
+                </div>
+                <button class="modal-close" onclick="closeFilterPreviewModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="preview-table-container">
+                    <table class="preview-table">
+                        <thead>
+                            <tr>
+                                <th>Register No</th>
+                                <th>Student Name</th>
+                                <th>Department</th>
+                                <th>Year</th>
+                                <th>Performance</th>
+                                <th>Risk Level</th>
+                                <th>Dropout Risk</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    // Add click outside to close
+    modal.addEventListener('click', function(e) {
+        if (e.target === modal) {
+            closeFilterPreviewModal();
+        }
+    });
+    
+    return modal;
+}
+
+function closeFilterPreviewModal() {
+    const modal = document.getElementById('filter-preview-modal');
+    if (modal) {
+        modal.classList.remove('show');
+        modal.style.display = 'none';
+    }
+}
+
+async function viewStudentFromPreview(rno) {
+    closeFilterPreviewModal();
+    
+    try {
+        showLoading('Loading student analytics...');
+        const result = await api('/api/student/search', 'POST', { rno });
+        hideLoading();
+        
+        if (result.success) {
+            currentStudent = result.student;
+            await analyseStudent(currentStudent);
+            
+            // Switch to student mode
+            document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+            const studentBtn = document.querySelector('[data-mode="student"]');
+            if (studentBtn) studentBtn.classList.add('active');
+            
+            document.querySelectorAll('.mode-section').forEach(sec => {
+                sec.classList.remove('active');
+                sec.classList.add('hidden');
+            });
+            
+            const studentMode = document.getElementById('mode-student');
+            if (studentMode) {
+                studentMode.classList.remove('hidden');
+                studentMode.classList.add('active');
+            }
+            
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        } else {
+            alert('Failed to load student details: ' + result.message);
+        }
+    } catch (error) {
+        hideLoading();
+        console.error('Error loading student:', error);
+        alert('Failed to load student analytics.');
+    }
+}
 function setupSidebarToggle() {
     const toggleBtn = document.getElementById('sidebar-toggle');
     const sidebar = document.getElementById('sidebar');

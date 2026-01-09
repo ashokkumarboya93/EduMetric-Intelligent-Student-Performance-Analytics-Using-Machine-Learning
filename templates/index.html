@@ -8,6 +8,7 @@
 
     <!-- Styles -->
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/chat.css') }}">
 
     <!-- Font Awesome -->
     <link rel="stylesheet"
@@ -747,9 +748,9 @@
                 <div id="year-report" class="hidden">
                     <div class="card kpi-row kpi-row-wide">
                         <div class="kpi-pill small" id="year-kpi-total"></div>
-                        <div class="kpi-pill small" id="year-kpi-avg-perf"></div>
+                        <div class="kpi-pill small" id="year-kpi-high-perf"></div>
                         <div class="kpi-pill small" id="year-kpi-high-risk"></div>
-                        <div class="kpi-pill small" id="year-kpi-high-drop"></div>
+                        <div class="kpi-pill small" id="year-kpi-avg-att"></div>
                     </div>
 
                     <div class="card table-card">
@@ -770,15 +771,17 @@
 
                     <div class="chart-grid">
                         <div class="chart-card" id="year-chart-perf-donut"></div>
-                        <div class="chart-card" id="year-chart-scores"></div>
-                        <div class="chart-card" id="year-chart-3d"></div>
-                        <div class="chart-card" id="year-chart-hist"></div>
+                        <div class="chart-card" id="year-chart-dept-ranking"></div>
+                        <div class="chart-card" id="year-chart-risk-donut"></div>
+                        <div class="chart-card" id="year-chart-attendance-perf"></div>
+                        <div class="chart-card" id="year-chart-dept-risk"></div>
                     </div>
 
                     <div class="bottom-layout">
                         <div class="card summary-card">
                             <h3>Year Summary & Suggestions</h3>
                             <div id="year-summary"></div>
+                            <ul id="year-suggestions"></ul>
                         </div>
                         <div class="card actions-card">
                             <h3>Exports</h3>
@@ -793,9 +796,9 @@
             <!-- COLLEGE MODE -->
             <section id="mode-college" class="mode-section fade-in hidden">
                 <div class="card form-card">
-                    <h2>Total College Analytics</h2>
+                    <h2>College-Level Analytics</h2>
                     <p class="small-text">
-                        We sample up to 500 students for faster 3D analytics.
+                        Comprehensive institutional analytics with macro-level insights, department comparisons, and strategic decision-making support.
                     </p>
                     <button class="primary-btn" onclick="analyseCollege()">
                         <i class="fa-solid fa-chart-pie"></i> Analyse College
@@ -805,13 +808,13 @@
                 <div id="college-report" class="hidden">
                     <div class="card kpi-row kpi-row-wide">
                         <div class="kpi-pill small" id="clg-kpi-total"></div>
-                        <div class="kpi-pill small" id="clg-kpi-avg-perf"></div>
+                        <div class="kpi-pill small" id="clg-kpi-high-perf"></div>
                         <div class="kpi-pill small" id="clg-kpi-high-risk"></div>
-                        <div class="kpi-pill small" id="clg-kpi-high-drop"></div>
+                        <div class="kpi-pill small" id="clg-kpi-avg-att"></div>
                     </div>
 
                     <div class="card table-card">
-                        <h3>Sample Snapshot (max 500)</h3>
+                        <h3>College Student Overview</h3>
                         <div class="table-wrapper">
                             <table id="clg-table">
                                 <thead>
@@ -829,19 +832,21 @@
                     <div class="chart-grid">
                         <div class="chart-card" id="clg-chart-perf-donut"></div>
                         <div class="chart-card" id="clg-chart-risk-donut"></div>
-                        <div class="chart-card" id="clg-chart-3d"></div>
-                        <div class="chart-card" id="clg-chart-box"></div>
+                        <div class="chart-card" id="clg-chart-dept-perf"></div>
+                        <div class="chart-card" id="clg-chart-year-trend"></div>
+                        <div class="chart-card" id="clg-chart-attendance"></div>
                     </div>
 
                     <div class="bottom-layout">
                         <div class="card summary-card">
-                            <h3>College Summary & High-level Insights</h3>
+                            <h3>College Summary & Strategic Insights</h3>
                             <div id="clg-summary"></div>
+                            <ul id="clg-suggestions"></ul>
                         </div>
                         <div class="card actions-card">
                             <h3>Exports</h3>
                             <button class="secondary-btn" onclick="exportCollegeCSV()">
-                                <i class="fa-solid fa-download"></i> Export College
+                                <i class="fa-solid fa-download"></i> Export College Data
                             </button>
                         </div>
                     </div>
@@ -1254,22 +1259,21 @@
                             <div class="chat-message bot-message">
                                 <div class="message-avatar"><i class="fa-solid fa-robot"></i></div>
                                 <div class="message-content">
-                                    <p>Hello! I'm your AI Analytics Assistant. I can help you with:</p>
+                                    <p>Hello! The AI Analytics Assistant is currently under development.</p>
                                     <ul>
-                                        <li>Finding top performers and high-risk students</li>
-                                        <li>Department performance comparisons</li>
-                                        <li>Attendance and dropout analysis</li>
-                                        <li>Batch summaries and insights</li>
+                                        <li>Feature will be available in future updates</li>
+                                        <li>Use other analytics modes for now</li>
+                                        <li>Department, Year-wise, and College analytics are fully functional</li>
                                     </ul>
-                                    <p><strong>Try asking:</strong> "Who are the top performers?" or "Show high-risk students in CSE"</p>
+                                    <p><strong>Please use:</strong> Department Analytics, Year Analytics, or College Analytics</p>
                                 </div>
                             </div>
                         </div>
                         
                         <div class="chat-input-container">
                             <div class="chat-input-wrapper">
-                                <input type="text" id="chat-input" placeholder="Ask me anything about student analytics..." maxlength="500">
-                                <button id="chat-send-btn" onclick="sendChatMessage()">
+                                <input type="text" id="chat-input" placeholder="Feature coming soon..." disabled>
+                                <button id="chat-send-btn" disabled>
                                     <i class="fa-solid fa-paper-plane"></i>
                                 </button>
                             </div>
@@ -1281,8 +1285,8 @@
                         <div class="canvas-welcome">
                             <div class="welcome-content">
                                 <i class="fa-solid fa-chart-line" style="font-size: 64px; color: #1976d2; margin-bottom: 20px;"></i>
-                                <h3>Analytics Canvas</h3>
-                                <p>Ask a question to view analytics insights, charts, and data visualizations</p>
+                                <h3>Feature Under Development</h3>
+                                <p>AI Analytics Assistant coming soon with advanced capabilities</p>
                             </div>
                         </div>
                         
@@ -1337,39 +1341,8 @@
     </div>
 </div>
 
-<!-- Drill-down Modal for Chart Clicks -->
-<div id="drilldown-modal" class="modal">
-    <div class="modal-content drilldown-modal-content">
-        <div class="modal-header">
-            <h3 id="drilldown-title">Filtered Students</h3>
-            <button class="modal-close" onclick="closeDrilldownModal()">&times;</button>
-        </div>
-        <div class="drilldown-info">
-            <span id="drilldown-filter-badge" class="filter-badge"></span>
-            <span id="drilldown-count" class="count-badge"></span>
-        </div>
-        <div class="modal-body">
-            <div class="table-wrapper">
-                <table id="drilldown-table">
-                    <thead>
-                        <tr>
-                            <th>RNO</th><th>Name</th><th>Dept</th><th>Year</th><th>Sem</th>
-                            <th>Performance</th><th>Risk</th><th>Dropout</th>
-                            <th>Perf%</th><th>Risk%</th><th>Drop%</th><th>Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody></tbody>
-                </table>
-            </div>
-        </div>
-        <div class="modal-footer">
-            <button class="secondary-btn" onclick="exportDrilldownCSV()">
-                <i class="fa-solid fa-download"></i> Export List
-            </button>
-            <button class="ghost-btn" onclick="closeDrilldownModal()">Close</button>
-        </div>
-    </div>
-</div>
+
+
 
 <div id="loading-overlay" style="display: none;">
     <p>Processing...</p>
@@ -1379,3 +1352,85 @@
 
 </body>
 </html>
+<script>
+// Welcome Modal Functions
+function closeWelcomeModal() {
+    document.getElementById('welcome-modal').style.display = 'none';
+}
+</script>
+
+<style>
+/* Welcome Modal Styles */
+.modal {
+    position: fixed;
+    top: 10;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0,0,0,0.8);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10000;
+}
+
+.welcome-modal-content {
+    max-width: 500px;
+    width: 90%;
+    background: linear-gradient(135deg, #1976d2 0%, #42a5f5 100%);
+    color: white;
+    border-radius: 20px;
+    position: relative;
+    padding: 80px 40px;
+    text-align: center;
+    box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+.welcome-modal-content .modal-close {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    background: rgba(255,255,255,0.2);
+    color: white;
+    border: none;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    font-size: 20px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.welcome-modal-content .modal-close:hover {
+    background: rgba(255,255,255,0.3);
+    transform: rotate(90deg);
+}
+
+.welcome-center {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+}
+
+.welcome-center h1 {
+    font-size: 72px;
+    font-weight: 700;
+    margin: 0 0 20px 0;
+    text-shadow: 0 4px 8px rgba(0,0,0,0.3);
+    color: white;
+}
+
+.welcome-center p {
+    font-size: 20px;
+    opacity: 0.9;
+    margin: 0;
+    font-weight: 300;
+    color: white;
+}
+</style>

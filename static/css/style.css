@@ -1160,16 +1160,21 @@ select:focus {
 }
 
 #mode-student .chart-row-3 {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 25px;
-    justify-items: center;
+    display: flex;
+    gap: 20px;
+    width: 100%;
+    margin: 0;
+    padding: 0;
 }
 
 #mode-student .chart-row-3 .chart-card {
+    flex: 1;
     height: 300px;
-    width: 100%;
-    max-width: 350px;
+    max-width: calc(33.333% - 14px);
+    min-width: 280px;
+    padding: 10px;
+    overflow: hidden;
+    box-sizing: border-box;
 }
 
 #mode-student .chart-card {
@@ -1424,6 +1429,134 @@ tbody tr:hover {
 
 .sidebar-overlay.active {
     display: block;
+}
+
+/* Filter Preview Modal */
+.filter-preview-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.filter-preview-modal.show {
+    opacity: 1;
+}
+
+.filter-preview-modal .modal-content {
+    background: white;
+    border-radius: 12px;
+    width: 90%;
+    max-width: 1200px;
+    max-height: 80vh;
+    overflow: hidden;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+    transform: scale(0.9);
+    transition: transform 0.3s ease;
+}
+
+.filter-preview-modal.show .modal-content {
+    transform: scale(1);
+}
+
+.filter-preview-modal .modal-header {
+    background: linear-gradient(135deg, #1976d2, #00897b);
+    color: white;
+    padding: 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.filter-preview-modal .preview-title {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 600;
+}
+
+.filter-preview-modal .preview-count {
+    font-size: 14px;
+    opacity: 0.9;
+    margin-top: 5px;
+}
+
+.filter-preview-modal .modal-close {
+    background: none;
+    border: none;
+    color: white;
+    font-size: 24px;
+    cursor: pointer;
+    padding: 5px;
+    border-radius: 50%;
+    width: 35px;
+    height: 35px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.2s ease;
+}
+
+.filter-preview-modal .modal-close:hover {
+    background: rgba(255, 255, 255, 0.2);
+}
+
+.filter-preview-modal .modal-body {
+    padding: 0;
+    max-height: 60vh;
+    overflow-y: auto;
+}
+
+.filter-preview-modal .preview-table-container {
+    overflow-x: auto;
+}
+
+.filter-preview-modal .preview-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+}
+
+.filter-preview-modal .preview-table th {
+    background: #f5f5f5;
+    padding: 12px 8px;
+    text-align: left;
+    font-weight: 600;
+    color: #333;
+    border-bottom: 2px solid #ddd;
+    position: sticky;
+    top: 0;
+}
+
+.filter-preview-modal .preview-table td {
+    padding: 10px 8px;
+    border-bottom: 1px solid #eee;
+}
+
+.filter-preview-modal .preview-table tbody tr:hover {
+    background: #f9f9f9;
+}
+
+.filter-preview-modal .view-btn {
+    background: #1976d2;
+    color: white;
+    border: none;
+    padding: 6px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 12px;
+    transition: background 0.2s ease;
+}
+
+.filter-preview-modal .view-btn:hover {
+    background: #1565c0;
 }
 
 /* Responsive breakpoints */
