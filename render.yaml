@@ -2,6 +2,7 @@ services:
   - type: web
     name: edumetric
     env: python
+    runtime: python-3.11.10
     buildCommand: pip install -r requirements.txt
     startCommand: gunicorn app:app
     envVars:
