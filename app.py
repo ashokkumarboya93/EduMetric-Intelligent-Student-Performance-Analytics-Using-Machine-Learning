@@ -1,5 +1,4 @@
 import os
-import pandas as pd
 from flask import Flask, jsonify, request, render_template
 import requests
 from dotenv import load_dotenv
@@ -30,22 +29,25 @@ def get_supabase_data():
         if response.status_code == 200:
             data = response.json()
             if data:
-                df = pd.DataFrame(data)
-                df.columns = df.columns.str.upper()
-                return df
+                # Convert to uppercase column names for consistency
+                processed_data = []
+                for row in data:
+                    processed_row = {k.upper(): v for k, v in row.items()}
+                    processed_data.append(processed_row)
+                return processed_data
         
-        return pd.DataFrame()
+        return []
         
     except Exception as e:
         print(f"Error: {e}")
-        return pd.DataFrame()
+        return []
 
 @app.route("/")
 def index():
     try:
-        df = get_supabase_data()
-        departments = sorted(df['DEPT'].unique().tolist()) if not df.empty and 'DEPT' in df.columns else ['CSE', 'ECE', 'MECH', 'CIVIL', 'EEE', 'CSE(AI)', 'CDS']
-        years = sorted(df['YEAR'].unique().tolist()) if not df.empty and 'YEAR' in df.columns else ['1', '2', '3', '4']
+        data = get_supabase_data()
+        departments = sorted(list(set([row['DEPT'] for row in data if 'DEPT' in row]))) if data else ['CSE', 'ECE', 'MECH', 'CIVIL', 'EEE', 'CSE(AI)', 'CDS']
+        years = sorted(list(set([str(row['YEAR']) for row in data if 'YEAR' in row]))) if data else ['1', '2', '3', '4']
         
         return render_template('index.html', 
                              DEBUG=True,
@@ -54,9 +56,273 @@ def index():
     except Exception as e:
         return render_template('index.html', DEBUG=True, departments=['CSE', 'ECE', 'MECH', 'CIVIL', 'EEE', 'CSE(AI)', 'CDS'], years=['1', '2', '3', '4'])
 
+@app.route("/api/analytics", methods=["POST"])
+def api_analytics():
+    try:
+        data = request.get_json(silent=True) or {}
+        mode = data.get("mode", "batch")
+        
+        if mode == "batch":
+            return handle_batch_analytics(data)
+        elif mode == "department":
+            return handle_department_analytics(data)
+        elif mode == "year":
+            return handle_year_analytics(data)
+        elif mode == "college":
+            return handle_college_analytics(data)
+        else:
+            return jsonify({"success": False, "message": "Invalid mode"}), 400
+            
+    except Exception as e:
+        return jsonify({"success": False, "message": str(e)}), 500
+
+def handle_batch_analytics(data):
+    try:
+        students_data = get_supabase_data()
+        if not students_data:
+            return jsonify({"success": False, "message": "No data available"}), 500
+        
+        total_students = len(students_data)
+        high_perf = len([s for s in students_data if str(s.get('PERFORMANCE_LABEL', '')).lower() == 'high'])
+        medium_perf = len([s for s in students_data if str(s.get('PERFORMANCE_LABEL', '')).lower() == 'medium'])
+        low_perf = len([s for s in students_data if str(s.get('PERFORMANCE_LABEL', '')).lower() in ['low', 'poor']])
+        
+        high_risk = len([s for s in students_data if str(s.get('RISK_LABEL', '')).lower() == 'high'])
+        medium_risk = len([s for s in students_data if str(s.get('RISK_LABEL', '')).lower() == 'medium'])
+        low_risk = len([s for s in students_data if str(s.get('RISK_LABEL', '')).lower() == 'low'])
+        
+        dropout_high = len([s for s in students_data if str(s.get('DROPOUT_LABEL', '')).lower() == 'high'])
+        dropout_medium = len([s for s in students_data if str(s.get('DROPOUT_LABEL', '')).lower() == 'medium'])
+        dropout_low = len([s for s in students_data if str(s.get('DROPOUT_LABEL', '')).lower() == 'low'])
+        
+        avg_attendance = sum([float(s.get('ATTENDANCE_PCT', 0)) for s in students_data]) / total_students if total_students > 0 else 0
+        avg_performance = sum([float(s.get('PERFORMANCE_OVERALL', 0)) for s in students_data]) / total_students if total_students > 0 else 0
+        
+        stats = {
+            "total_students": total_students,
+            "avg_performance": round(avg_performance, 1),
+            "avg_attendance": round(avg_attendance, 1),
+            "high_performers": high_perf,
+            "at_risk_students": high_risk
+        }
+        
+        label_counts = {
+            "performance": {"High": high_perf, "Medium": medium_perf, "Low": low_perf},
+            "risk": {"High": high_risk, "Medium": medium_risk, "Low": low_risk},
+            "dropout": {"High": dropout_high, "Medium": dropout_medium, "Low": dropout_low}
+        }
+        
+        table_data = [{
+            "RNO": s.get('RNO', ''),
+            "NAME": s.get('NAME', ''),
+            "DEPT": s.get('DEPT', ''),
+            "YEAR": s.get('YEAR', ''),
+            "PERFORMANCE_LABEL": s.get('PERFORMANCE_LABEL', ''),
+            "RISK_LABEL": s.get('RISK_LABEL', ''),
+            "DROPOUT_LABEL": s.get('DROPOUT_LABEL', '')
+        } for s in students_data[:100]]  # Limit to first 100 for performance
+        
+        insights = [
+            f"Total {total_students} students analyzed",
+            f"Average performance: {avg_performance:.1f}%",
+            f"High performers: {high_perf} students ({(high_perf/total_students*100):.1f}%)",
+            f"At-risk students: {high_risk} students need attention"
+        ]
+        
+        suggestions = [
+            "Monitor at-risk students closely",
+            "Implement targeted support programs",
+            "Regular performance reviews recommended"
+        ]
+        
+        return jsonify({
+            "success": True,
+            "stats": stats,
+            "label_counts": label_counts,
+            "table": table_data,
+            "insights": insights,
+            "suggestions": suggestions,
+            "total_students": total_students
+        })
+        
+    except Exception as e:
+        return jsonify({"success": False, "message": str(e)}), 500
+
+def handle_department_analytics(data):
+    try:
+        department = data.get("department", "")
+        if not department:
+            return jsonify({"success": False, "message": "Department required"}), 400
+            
+        students_data = get_supabase_data()
+        dept_students = [s for s in students_data if str(s.get('DEPT', '')).upper() == department.upper()]
+        
+        if not dept_students:
+            return jsonify({"success": False, "message": f"No students found in {department}"}), 404
+            
+        total_students = len(dept_students)
+        avg_performance = sum([float(s.get('PERFORMANCE_OVERALL', 0)) for s in dept_students]) / total_students
+        
+        stats = {
+            "total_students": total_students,
+            "avg_performance": round(avg_performance, 1),
+            "department": department
+        }
+        
+        return jsonify({"success": True, "stats": stats})
+        
+    except Exception as e:
+        return jsonify({"success": False, "message": str(e)}), 500
+
+def handle_year_analytics(data):
+    try:
+        year = data.get("year", "")
+        if not year:
+            return jsonify({"success": False, "message": "Year required"}), 400
+            
+        students_data = get_supabase_data()
+        year_students = [s for s in students_data if str(s.get('YEAR', '')) == str(year)]
+        
+        if not year_students:
+            return jsonify({"success": False, "message": f"No students found in year {year}"}), 404
+            
+        total_students = len(year_students)
+        avg_performance = sum([float(s.get('PERFORMANCE_OVERALL', 0)) for s in year_students]) / total_students
+        
+        stats = {
+            "total_students": total_students,
+            "avg_performance": round(avg_performance, 1),
+            "year": year
+        }
+        
+        return jsonify({"success": True, "stats": stats})
+        
+    except Exception as e:
+        return jsonify({"success": False, "message": str(e)}), 500
+
+def handle_college_analytics(data):
+    try:
+        students_data = get_supabase_data()
+        if not students_data:
+            return jsonify({"success": False, "message": "No data available"}), 500
+            
+        total_students = len(students_data)
+        avg_performance = sum([float(s.get('PERFORMANCE_OVERALL', 0)) for s in students_data]) / total_students
+        
+        stats = {
+            "total_students": total_students,
+            "avg_performance": round(avg_performance, 1)
+        }
+        
+        return jsonify({"success": True, "stats": stats})
+        
+    except Exception as e:
+        return jsonify({"success": False, "message": str(e)}), 500
+
+@app.route("/api/student/search", methods=["POST"])
+def api_student_search():
+    try:
+        data = request.get_json(silent=True) or {}
+        rno = data.get("rno", "").strip()
+
+        if not rno:
+            return jsonify({"success": False, "message": "Please provide Register Number"}), 400
+
+        url = f"{SUPABASE_URL}/rest/v1/students?rno=eq.{rno}&select=*"
+        headers = {
+            'apikey': SUPABASE_KEY,
+            'Authorization': f'Bearer {SUPABASE_KEY}',
+            'Accept': 'application/json'
+        }
+        
+        response = requests.get(url, headers=headers, timeout=10)
+        
+        if response.status_code == 200:
+            data = response.json()
+            if data:
+                student = data[0]
+                student_data = {
+                    "NAME": str(student.get("name", "")),
+                    "RNO": str(student.get("rno", "")),
+                    "EMAIL": str(student.get("email", "")),
+                    "DEPT": str(student.get("dept", "")),
+                    "YEAR": int(student.get("year", 1)),
+                    "CURR_SEM": int(student.get("curr_sem", 1)),
+                    "PERFORMANCE_OVERALL": float(student.get("performance_overall", 50)),
+                    "RISK_SCORE": float(student.get("risk_score", 50)),
+                    "DROPOUT_SCORE": float(student.get("dropout_score", 50)),
+                    "PERFORMANCE_LABEL": str(student.get("performance_label", "medium")),
+                    "RISK_LABEL": str(student.get("risk_label", "medium")),
+                    "DROPOUT_LABEL": str(student.get("dropout_label", "medium")),
+                    "ATTENDANCE_PCT": float(student.get("attendance_pct", 75))
+                }
+                return jsonify({"success": True, "student": student_data})
+        
+        return jsonify({"success": False, "message": "Student not found"}), 404
+        
+    except Exception as e:
+        return jsonify({"success": False, "message": str(e)}), 500
+
+@app.route("/api/student/predict", methods=["POST"])
+def api_student_predict():
+    try:
+        student = request.get_json(silent=True) or {}
+        
+        behavior_score = float(student.get("BEHAVIOR_SCORE_10", 5))
+        internal_marks = float(student.get("INTERNAL_MARKS", 15))
+        attended_days = float(student.get("ATTENDED_DAYS_CURR", 45))
+        total_days = float(student.get("TOTAL_DAYS_CURR", 90))
+        
+        behavior_pct = (behavior_score / 10.0) * 100
+        internal_pct = (internal_marks / 30.0) * 100
+        present_att = (attended_days / total_days) * 100 if total_days > 0 else 0
+        
+        perf_overall = (internal_pct * 0.4 + present_att * 0.4 + behavior_pct * 0.2)
+        risk_score = 100 - perf_overall
+        dropout_score = risk_score
+        
+        def get_performance_label(score):
+            if score >= 75: return "high"
+            elif score >= 50: return "medium"
+            else: return "low"
+        
+        def get_risk_label(score):
+            if score >= 70: return "high"
+            elif score >= 40: return "medium"
+            else: return "low"
+        
+        features = {
+            "performance_overall": perf_overall,
+            "risk_score": risk_score,
+            "dropout_score": dropout_score,
+            "attendance_pct": present_att,
+            "behavior_pct": behavior_pct,
+            "internal_pct": internal_pct
+        }
+        
+        predictions = {
+            "performance_label": get_performance_label(perf_overall),
+            "risk_label": get_risk_label(risk_score),
+            "dropout_label": get_risk_label(dropout_score)
+        }
+        
+        need_alert = (predictions["performance_label"] == "low" or 
+                     predictions["risk_label"] == "high" or 
+                     predictions["dropout_label"] == "high")
+        
+        return jsonify({
+            "success": True,
+            "student": student,
+            "features": features,
+            "predictions": predictions,
+            "need_alert": need_alert
+        })
+        
+    except Exception as e:
+        return jsonify({"success": False, "message": str(e)}), 500
+
 @app.route("/api/chat", methods=["POST"])
 def api_chat():
-    """AI Chat Assistant for dynamic analytics queries"""
     try:
         data = request.get_json(silent=True) or {}
         message = data.get('message', '').strip()
@@ -64,8 +330,6 @@ def api_chat():
         if not message:
             return jsonify({"success": False, "message": "Please provide a message"}), 400
         
-        # Simple register number detection
-        import re
         rno_match = re.search(r'\b(\d{2}[gG]\d{2}[aA]\d{4})\b', message, re.IGNORECASE)
         
         if rno_match:
@@ -81,7 +345,6 @@ def api_chat():
         return jsonify({"success": False, "message": f"Chat error: {str(e)}"}), 500
 
 def handle_student_analytics_query(rno, original_message):
-    """Handle individual student analytics queries"""
     try:
         url = f"{SUPABASE_URL}/rest/v1/students?rno=eq.{rno}&select=*"
         headers = {
@@ -99,19 +362,13 @@ def handle_student_analytics_query(rno, original_message):
                 "name": student_data.get("name", "Unknown"),
                 "rno": student_data.get("rno", rno),
                 "dept": student_data.get("dept", "Unknown"),
-                "year": student_data.get("year", 1),
-                "semester": student_data.get("curr_sem", 1),
-                "email": student_data.get("email", "N/A"),
-                "mentor": student_data.get("mentor", "N/A")
+                "year": student_data.get("year", 1)
             }
             
             kpis = {
                 "performance_score": float(student_data.get("performance_overall", 50)),
                 "risk_score": float(student_data.get("risk_score", 50)),
-                "dropout_score": float(student_data.get("dropout_score", 50)),
-                "attendance_rate": float(student_data.get("attendance_pct", 75)),
-                "internal_marks": float(student_data.get("internal_pct", 66)),
-                "behavior_score": float(student_data.get("behavior_pct", 70))
+                "attendance_rate": float(student_data.get("attendance_pct", 75))
             }
             
             predictions = {
@@ -120,16 +377,7 @@ def handle_student_analytics_query(rno, original_message):
                 "dropout_label": student_data.get("dropout_label", "medium")
             }
             
-            semester_data = {}
-            for i in range(1, 9):
-                sem_value = student_data.get(f"sem{i}")
-                if sem_value and float(sem_value) > 0:
-                    semester_data[f"SEM{i}"] = float(sem_value)
-            
-            insight = f"{student_info['name']} shows {predictions['performance_label']} performance with {kpis['performance_score']:.1f}% overall score."
-            recommendations = ["Regular monitoring recommended", "Continue current support"]
-            
-            response_text = f"Here's the complete analytics for {student_info['name']} ({rno}). I've loaded their performance dashboard with detailed insights and recommendations."
+            response_text = f"Here's the analytics for {student_info['name']} ({rno})."
             
             return jsonify({
                 "success": True,
@@ -140,331 +388,22 @@ def handle_student_analytics_query(rno, original_message):
                     "title": f"Analytics for {student_info['name']} ({rno})",
                     "student_info": student_info,
                     "kpis": kpis,
-                    "predictions": predictions,
-                    "semester_data": semester_data,
-                    "insight": insight,
-                    "recommendations": recommendations
+                    "predictions": predictions
                 }
             })
         else:
             return jsonify({
                 "success": True,
-                "response": f"I couldn't find a student with register number {rno}. Please check the register number and try again."
+                "response": f"Student {rno} not found. Please check the register number."
             })
             
     except Exception as e:
         return jsonify({
             "success": False,
-            "response": f"I encountered an error while searching for student {rno}. Please try again."
+            "response": f"Error searching for student {rno}. Please try again."
         })
 
-def handle_department_analytics_query(message):
-    """Handle department-wise analytics queries"""
-    try:
-        dept_mapping = {
-            'cse': 'CSE', 'computer science': 'CSE', 'cs': 'CSE',
-            'ece': 'ECE', 'electronics': 'ECE', 'ec': 'ECE',
-            'mech': 'MECH', 'mechanical': 'MECH',
-            'civil': 'CIVIL', 'ce': 'CIVIL',
-            'eee': 'EEE', 'electrical': 'EEE'
-        }
-        
-        detected_dept = None
-        for key, value in dept_mapping.items():
-            if key in message:
-                detected_dept = value
-                break
-        
-        if not detected_dept:
-            return jsonify({
-                "success": True,
-                "response": "I can analyze department performance! Please specify which department: CSE, ECE, MECH, CIVIL, or EEE."
-            })
-        
-        df = get_supabase_data()
-        if df.empty:
-            return jsonify({
-                "success": True,
-                "response": "I'm unable to access the student database right now. Please try again later."
-            })
-        
-        dept_df = df[df['DEPT'].astype(str).str.upper() == detected_dept]
-        
-        if dept_df.empty:
-            return jsonify({
-                "success": True,
-                "response": f"No students found in {detected_dept} department."
-            })
-        
-        total_students = len(dept_df)
-        high_performers = len(dept_df[dept_df['PERFORMANCE_LABEL'].astype(str).str.lower() == 'high'])
-        avg_performance = dept_df['PERFORMANCE_OVERALL'].astype(float).mean()
-        
-        stats = {
-            "total_students": total_students,
-            "high_performers": high_performers,
-            "avg_performance": round(avg_performance, 1)
-        }
-        
-        top_students = dept_df.nlargest(10, 'PERFORMANCE_OVERALL')[['RNO', 'NAME', 'DEPT', 'YEAR', 'PERFORMANCE_OVERALL']].to_dict('records')
-        
-        insight = f"The {detected_dept} department has {total_students} students with an average performance of {avg_performance:.1f}%."
-        
-        response_text = f"Here's the complete analytics for {detected_dept} department with {total_students} students."
-        
-        return jsonify({
-            "success": True,
-            "type": "analytics",
-            "action": "department_analysis",
-            "response": response_text,
-            "data": {
-                "title": f"{detected_dept} Department Analytics",
-                "stats": stats,
-                "students": top_students,
-                "insight": insight,
-                "department": detected_dept
-            }
-        })
-        
-    except Exception as e:
-        return jsonify({
-            "success": True,
-            "response": "I encountered an error while analyzing the department. Please try again."
-        })
 
-def handle_top_performers_query(message):
-    """Handle top performers queries"""
-    try:
-        df = get_supabase_data()
-        if df.empty:
-            return jsonify({
-                "success": True,
-                "response": "I'm unable to access the student database right now."
-            })
-        
-        top_performers = df[df['PERFORMANCE_LABEL'].astype(str).str.lower() == 'high']
-        
-        if top_performers.empty:
-            return jsonify({
-                "success": True,
-                "response": "No high-performing students found in the current dataset."
-            })
-        
-        top_students = top_performers.nlargest(20, 'PERFORMANCE_OVERALL')[['RNO', 'NAME', 'DEPT', 'YEAR', 'PERFORMANCE_OVERALL']].to_dict('records')
-        
-        stats = {
-            "total_high_performers": len(top_performers),
-            "avg_performance": round(top_performers['PERFORMANCE_OVERALL'].astype(float).mean(), 1)
-        }
-        
-        insight = f"Found {len(top_performers)} high-performing students with an average performance of {stats['avg_performance']}%."
-        
-        response_text = f"Here are the top {len(top_students)} high-performing students!"
-        
-        return jsonify({
-            "success": True,
-            "type": "analytics",
-            "action": "top_performers",
-            "response": response_text,
-            "data": {
-                "title": "Top Performing Students",
-                "stats": stats,
-                "students": top_students,
-                "insight": insight
-            }
-        })
-        
-    except Exception as e:
-        return jsonify({
-            "success": True,
-            "response": "I encountered an error while finding top performers."
-        })
-
-def handle_high_risk_query(message):
-    """Handle high risk students queries"""
-    try:
-        df = get_supabase_data()
-        if df.empty:
-            return jsonify({
-                "success": True,
-                "response": "I'm unable to access the student database right now."
-            })
-        
-        high_risk_students = df[df['RISK_LABEL'].astype(str).str.lower() == 'high']
-        
-        if high_risk_students.empty:
-            return jsonify({
-                "success": True,
-                "response": "Great news! No students are currently classified as high-risk."
-            })
-        
-        risk_students = high_risk_students.nlargest(20, 'RISK_SCORE')[['RNO', 'NAME', 'DEPT', 'YEAR', 'RISK_SCORE']].to_dict('records')
-        
-        stats = {
-            "total_high_risk": len(high_risk_students),
-            "avg_risk_score": round(high_risk_students['RISK_SCORE'].astype(float).mean(), 1)
-        }
-        
-        insight = f"⚠️ URGENT: {len(high_risk_students)} students are at high risk with an average risk score of {stats['avg_risk_score']}%."
-        
-        response_text = f"⚠️ I found {len(risk_students)} high-risk students who need immediate attention!"
-        
-        return jsonify({
-            "success": True,
-            "type": "analytics",
-            "action": "high_risk_students",
-            "response": response_text,
-            "data": {
-                "title": "High-Risk Students - Immediate Attention Required",
-                "stats": stats,
-                "students": risk_students,
-                "insight": insight
-            }
-        })
-        
-    except Exception as e:
-        return jsonify({
-            "success": True,
-            "response": "I encountered an error while finding high-risk students."
-        })
-
-def handle_attendance_query(message):
-    """Handle attendance analysis queries"""
-    try:
-        df = get_supabase_data()
-        if df.empty:
-            return jsonify({
-                "success": True,
-                "response": "I'm unable to access the student database right now."
-            })
-        
-        if 'ATTENDANCE_PCT' in df.columns:
-            avg_attendance = df['ATTENDANCE_PCT'].astype(float).mean()
-            low_attendance = df[df['ATTENDANCE_PCT'].astype(float) < 75]
-            
-            stats = {
-                "avg_attendance": round(avg_attendance, 1),
-                "low_attendance_count": len(low_attendance),
-                "total_students": len(df)
-            }
-            
-            insight = f"College-wide attendance analysis shows {avg_attendance:.1f}% average attendance."
-            
-            response_text = f"Here's the comprehensive attendance analysis! Average attendance is {avg_attendance:.1f}%."
-            
-            return jsonify({
-                "success": True,
-                "type": "analytics",
-                "action": "attendance_analysis",
-                "response": response_text,
-                "data": {
-                    "title": "Attendance Analysis",
-                    "stats": stats,
-                    "students": low_attendance[['RNO', 'NAME', 'DEPT', 'ATTENDANCE_PCT']].to_dict('records')[:20],
-                    "insight": insight
-                }
-            })
-        else:
-            return jsonify({
-                "success": True,
-                "response": "Attendance data is not available in the current dataset."
-            })
-            
-    except Exception as e:
-        return jsonify({
-            "success": True,
-            "response": "I encountered an error while analyzing attendance."
-        })
-
-def handle_year_analytics_query(message):
-    """Handle year-wise analytics queries"""
-    try:
-        year_patterns = [
-            (r'\b1st\b|\bfirst\b|\byear 1\b', '1'),
-            (r'\b2nd\b|\bsecond\b|\byear 2\b', '2'),
-            (r'\b3rd\b|\bthird\b|\byear 3\b', '3'),
-            (r'\b4th\b|\bfourth\b|\byear 4\b', '4')
-        ]
-        
-        detected_year = None
-        for pattern, year in year_patterns:
-            if re.search(pattern, message):
-                detected_year = year
-                break
-        
-        if not detected_year:
-            return jsonify({
-                "success": True,
-                "response": "I can analyze year-wise performance! Please specify: 1st year, 2nd year, 3rd year, or 4th year."
-            })
-        
-        df = get_supabase_data()
-        if df.empty:
-            return jsonify({
-                "success": True,
-                "response": "I'm unable to access the student database right now."
-            })
-        
-        year_df = df[df['YEAR'].astype(str) == detected_year]
-        
-        if year_df.empty:
-            return jsonify({
-                "success": True,
-                "response": f"No students found in {detected_year} year."
-            })
-        
-        total_students = len(year_df)
-        avg_performance = year_df['PERFORMANCE_OVERALL'].astype(float).mean()
-        
-        stats = {
-            "total_students": total_students,
-            "avg_performance": round(avg_performance, 1)
-        }
-        
-        sample_students = year_df.nlargest(15, 'PERFORMANCE_OVERALL')[['RNO', 'NAME', 'DEPT', 'PERFORMANCE_OVERALL']].to_dict('records')
-        
-        year_suffix = {"1": "st", "2": "nd", "3": "rd", "4": "th"}[detected_year]
-        insight = f"Year {detected_year} analysis shows {total_students} students with {avg_performance:.1f}% average performance."
-        
-        response_text = f"Here's the complete {detected_year}{year_suffix} year analytics for {total_students} students."
-        
-        return jsonify({
-            "success": True,
-            "type": "analytics",
-            "action": "year_analysis",
-            "response": response_text,
-            "data": {
-                "title": f"{detected_year}{year_suffix} Year Analytics",
-                "stats": stats,
-                "students": sample_students,
-                "insight": insight,
-                "year": detected_year
-            }
-        })
-        
-    except Exception as e:
-        return jsonify({
-            "success": True,
-            "response": "I encountered an error while analyzing year data."
-        })
-
-def handle_general_query(message):
-    """Handle general queries and provide help"""
-    help_examples = [
-        "🎓 **Individual Student**: '23G31A1014 analytics' or 'show me CSE2021001'",
-        "🏢 **Department Analysis**: 'CSE department analytics' or 'ECE performance'",
-        "🏆 **Top Performers**: 'show top performers' or 'best students'",
-        "⚠️ **High Risk Students**: 'high risk students' or 'students at risk'",
-        "📅 **Attendance Analysis**: 'attendance analysis' or 'attendance vs performance'",
-        "📊 **Year-wise Analytics**: '2nd year analytics' or '3rd year performance'"
-    ]
-    
-    response_text = f"I'm your AI Analytics Assistant! Here are some things you can ask me:\n\n" + "\n".join(help_examples) + "\n\nJust type your question naturally!"
-    
-    return jsonify({
-        "success": True,
-        "response": response_text
-    })
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
