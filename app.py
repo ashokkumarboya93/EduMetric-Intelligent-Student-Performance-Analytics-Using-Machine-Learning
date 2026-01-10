@@ -46,11 +46,11 @@ def index():
         years = sorted(list(set([str(row['YEAR']) for row in data if 'YEAR' in row]))) if data else ['1', '2', '3', '4']
         
         return render_template('index.html', 
-                             DEBUG=True,
+                             DEBUG=False,
                              departments=departments, 
                              years=years)
     except Exception as e:
-        return render_template('index.html', DEBUG=True, departments=['CSE', 'ECE', 'MECH', 'CIVIL', 'EEE', 'CSE(AI)', 'CDS'], years=['1', '2', '3', '4'])
+        return render_template('index.html', DEBUG=False, departments=['CSE', 'ECE', 'MECH', 'CIVIL', 'EEE', 'CSE(AI)', 'CDS'], years=['1', '2', '3', '4'])
 
 @app.route("/api/stats", methods=["GET"])
 def api_stats():
@@ -502,6 +502,76 @@ def handle_student_analytics_query(rno, original_message):
             "response": f"Error searching for student {rno}. Please try again."
         })
 
+@app.route("/api/college/analyze", methods=["POST"])
+def api_college_analyze():
+    try:
+        students_data = get_supabase_data()
+        if not students_data:
+            return jsonify({"success": False, "message": "No data available"}), 500
+            
+        total_students = len(students_data)
+        high_perf = len([s for s in students_data if str(s.get('PERFORMANCE_LABEL', '')).lower() == 'high'])
+        avg_performance = sum([float(s.get('PERFORMANCE_OVERALL', 0)) for s in students_data]) / total_students
+        avg_attendance = sum([float(s.get('ATTENDANCE_PCT', 0)) for s in students_data]) / total_students
+        
+        perf_counts = {"High": 0, "Medium": 0, "Low": 0}
+        risk_counts = {"High": 0, "Medium": 0, "Low": 0}
+        dropout_counts = {"High": 0, "Medium": 0, "Low": 0}
+        
+        for student in students_data:
+            perf_label = str(student.get('PERFORMANCE_LABEL', 'medium')).title()
+            risk_label = str(student.get('RISK_LABEL', 'medium')).title()
+            dropout_label = str(student.get('DROPOUT_LABEL', 'medium')).title()
+            
+            if perf_label in perf_counts:
+                perf_counts[perf_label] += 1
+            if risk_label in risk_counts:
+                risk_counts[risk_label] += 1
+            if dropout_label in dropout_counts:
+                dropout_counts[dropout_label] += 1
+        
+        stats = {
+            "total_students": total_students,
+            "avg_performance": round(avg_performance, 1),
+            "avg_attendance": round(avg_attendance, 1),
+            "high_performers": high_perf
+        }
+        
+        label_counts = {
+            "performance": perf_counts,
+            "risk": risk_counts,
+            "dropout": dropout_counts
+        }
+        
+        table_data = [{
+            "RNO": s.get('RNO', ''),
+            "NAME": s.get('NAME', ''),
+            "DEPT": s.get('DEPT', ''),
+            "YEAR": s.get('YEAR', ''),
+            "PERFORMANCE_OVERALL": s.get('PERFORMANCE_OVERALL', 0),
+            "PERFORMANCE_LABEL": s.get('PERFORMANCE_LABEL', ''),
+            "RISK_LABEL": s.get('RISK_LABEL', ''),
+            "ATTENDANCE_PCT": s.get('ATTENDANCE_PCT', 0)
+        } for s in students_data[:100]]
+        
+        insights = [
+            f"Total {total_students} students across all departments",
+            f"College-wide average performance: {avg_performance:.1f}%",
+            f"High performers: {high_perf} students ({(high_perf/total_students*100):.1f}%)"
+        ]
+        
+        return jsonify({
+            "success": True,
+            "stats": stats,
+            "label_counts": label_counts,
+            "table": table_data,
+            "insights": insights,
+            "total_students": total_students
+        })
+        
+    except Exception as e:
+        return jsonify({"success": False, "message": str(e)}), 500
+
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
-    app.run(host="0.0.0.0", port=port, debug=True)
+    app.run(host="0.0.0.0", port=port, debug=False)
