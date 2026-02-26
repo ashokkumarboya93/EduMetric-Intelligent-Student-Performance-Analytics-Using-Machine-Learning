@@ -6,6 +6,24 @@ let currentStudent = null;
 let currentStudentResult = null;
 
 /* ===========================================================
+   GLOBAL CHART CONFIGURATION
+   =========================================================== */
+window.defaultLayout = {
+    font: { family: 'Poppins, sans-serif' },
+    paper_bgcolor: 'rgba(0,0,0,0)',
+    plot_bgcolor: 'rgba(0,0,0,0)',
+    margin: { t: 40, r: 20, l: 40, b: 40 },
+    showlegend: true,
+    legend: { orientation: 'h', y: -0.2 }
+};
+
+window.defaultChartConfig = {
+    responsive: true,
+    displayModeBar: false,
+    displaylogo: false
+};
+
+/* ===========================================================
    LOADING OVERLAY HELPERS
    =========================================================== */
 function showLoading(message = "Processing...") {
@@ -64,16 +82,16 @@ window.addEventListener("DOMContentLoaded", () => {
     // Initialize landing page first
     const landingPage = document.getElementById('landing-page');
     const appShell = document.getElementById('app-shell');
-    
+
     if (landingPage) landingPage.style.display = 'block';
     if (appShell) appShell.style.display = 'none';
-    
+
     // Set initial header text for dashboard
     const totalStatsEl = document.getElementById("total-stats");
     if (totalStatsEl) {
         totalStatsEl.innerText = "Dashboard Ready";
     }
-    
+
     // Initialize UI components
     setupSidebarNav();
     setupSidebarToggle();
@@ -81,21 +99,21 @@ window.addEventListener("DOMContentLoaded", () => {
     setupNormalizeUpload();
     setupResponsiveCharts();
     setupKeyboardShortcuts();
-    
+
     // Load stats in background
     loadInitialStats();
 });
 
 // Keyboard shortcuts and global event handlers
 function setupKeyboardShortcuts() {
-    document.addEventListener('keydown', function(e) {
+    document.addEventListener('keydown', function (e) {
         // ESC key to close modals
         if (e.key === 'Escape') {
             closeDrilldownModal();
             closeStudentModal();
             closeAlertModal();
         }
-        
+
         // Ctrl/Cmd + number keys for quick navigation
         if ((e.ctrlKey || e.metaKey) && e.key >= '1' && e.key <= '7') {
             e.preventDefault();
@@ -107,15 +125,15 @@ function setupKeyboardShortcuts() {
             }
         }
     });
-    
+
     // Global click handler for closing modals when clicking outside
-    document.addEventListener('click', function(e) {
+    document.addEventListener('click', function (e) {
         // Close drill-down modal when clicking outside
         const drilldownModal = document.getElementById('drilldown-modal');
         if (drilldownModal && drilldownModal.classList.contains('show') && e.target === drilldownModal) {
             closeDrilldownModal();
         }
-        
+
         // Close student modal when clicking outside
         const studentModal = document.getElementById('student-modal');
         if (studentModal && !studentModal.classList.contains('hidden') && e.target === studentModal) {
@@ -137,7 +155,7 @@ function setupResponsiveCharts() {
             }
         });
     }, 250));
-    
+
     // Set default chart configuration
     window.defaultChartConfig = {
         displayModeBar: false,
@@ -150,7 +168,7 @@ function setupResponsiveCharts() {
             scale: 1
         }
     };
-    
+
     window.defaultLayout = {
         paper_bgcolor: "rgba(255,255,255,0)",
         plot_bgcolor: "rgba(255,245,245,0.6)",
@@ -181,14 +199,14 @@ async function loadInitialStats() {
     try {
         const stats = await api("/api/stats");
         if (!stats) return;
-        
+
         globalStats = stats;
-        
+
         const totalStatsEl = document.getElementById("total-stats");
         if (totalStatsEl && stats.total_students) {
             totalStatsEl.innerText = `Total Students: ${stats.total_students} • Departments: ${stats.departments?.length || 0} • Years: ${stats.years?.length || 0}`;
         }
-        
+
         if (stats.departments) {
             const deptSelects = [
                 document.getElementById("s-dept"),
@@ -207,7 +225,7 @@ async function loadInitialStats() {
                 }
             });
         }
-        
+
         if (stats.years) {
             const yearSelects = [
                 document.getElementById("s-year"),
@@ -226,7 +244,7 @@ async function loadInitialStats() {
                 }
             });
         }
-        
+
         if (stats.years) {
             const dYear = document.getElementById("d-year");
             if (dYear) {
@@ -301,7 +319,7 @@ function setupStudentToggle() {
 async function searchExistingStudent() {
     const rnoInput = document.getElementById("s-rno");
     if (!rnoInput) return;
-    
+
     const payload = {
         rno: rnoInput.value.trim(),
         dept: document.getElementById("s-dept")?.value || "",
@@ -445,226 +463,162 @@ function renderStudentHeader(result) {
 function renderStudentCharts(result) {
     const s = result.student;
     const f = result.features;
+    const p = result.predictions;
 
-    // Marks Trend Chart with description
+    // 1. Semester Performance Trend (Scatter/Line Chart)
     const marks = [];
     const semLabels = [];
+    const currSem = parseInt(s.CURR_SEM || s.curr_sem || 1);
+    // Include all semesters up to current semester to show full academic journey
     for (let i = 1; i <= 8; i++) {
         let k = `SEM${i}`;
-        if (s[k] !== undefined && s[k] !== "" && s[k] !== null && parseFloat(s[k]) > 0) {
-            marks.push(parseFloat(s[k]));
+        let val = parseFloat(s[k] || 0);
+        // Include semester if it has marks > 0, OR if it's before current semester
+        if (val > 0 || i < currSem) {
+            marks.push(val);
             semLabels.push(`Sem ${i}`);
         }
     }
-    
-    const marksChart = document.getElementById("st-chart-marks");
-    if (marksChart) {
-        // Add description
-        const marksDesc = document.createElement('div');
-        marksDesc.className = 'chart-description';
-        marksDesc.innerHTML = `<i class="fa-solid fa-info-circle"></i> Shows academic performance trend across semesters. ${marks.length > 1 ? (marks[marks.length-1] > marks[0] ? 'Improving trend <i class="fa-solid fa-arrow-trend-up"></i>' : 'Declining trend <i class="fa-solid fa-arrow-trend-down"></i>') : 'Limited data available'}.`;
-        marksChart.appendChild(marksDesc);
-        const layout = {
-            ...window.defaultLayout,
-            title: {
-                text: "Semester-wise Marks Trend",
-                font: { size: 18, color: '#1976d2' },
-                x: 0.5
-            },
-            yaxis: { 
-                range: [0, 100], 
-                title: { text: 'Marks (%)', font: { size: 14 } },
-                gridcolor: 'rgba(0,0,0,0.1)'
-            },
-            xaxis: { 
-                title: { text: 'Semesters', font: { size: 14 } },
-                gridcolor: 'rgba(0,0,0,0.1)'
-            },
-            height: 400
-        };
-        
-        Plotly.newPlot("st-chart-marks", [{
-            x: semLabels,
-            y: marks,
-            type: "scatter",
-            mode: "lines+markers",
-            line: { width: 4, color: '#1976d2' },
-            marker: { size: 10, color: '#1976d2', line: { color: '#fff', width: 2 } },
-            hovertemplate: '<b>%{x}</b><br>Marks: %{y}%<extra></extra>'
-        }], layout, window.defaultChartConfig);
-    }
 
-    // Radar Chart
-    if (document.getElementById("st-chart-radar")) {
-        const layout = {
-            ...window.defaultLayout,
-            title: {
-                text: "Attendance & Behavior Profile",
-                font: { size: 18, color: '#1976d2' },
-                x: 0.5
-            },
-            polar: { 
-                radialaxis: { 
-                    visible: true, 
-                    range: [0, 100],
-                    tickfont: { size: 12 },
-                    gridcolor: 'rgba(0,0,0,0.1)'
+    if (document.getElementById("st-chart-marks")) {
+        if (marks.length > 0) {
+            const layout = {
+                ...window.defaultLayout,
+                title: { text: "Semester-wise Marks (Scatter Plot)", font: { size: 18, color: '#1976d2' }, x: 0.5 },
+                yaxis: { range: [0, 100], title: { text: 'Marks (%)' } },
+                xaxis: { title: { text: 'Semesters' } },
+                height: 400
+            };
+
+            const traceMode = marks.length === 1 ? "markers+text" : "lines+markers";
+            const traces = [{
+                x: semLabels, y: marks, type: "scatter", mode: traceMode,
+                line: { width: 4, color: '#1976d2', shape: 'spline' },
+                marker: {
+                    size: 14, color: '#1976d2', symbol: 'circle',
+                    line: { width: 2, color: '#0d47a1' }
                 },
-                angularaxis: {
-                    tickfont: { size: 12 }
-                }
-            },
-            height: 400
-        };
-        
-        Plotly.newPlot("st-chart-radar", [{
-            type: "scatterpolar",
-            r: [f.present_att, f.prev_att, f.behavior_pct, f.present_att],
-            theta: ["Present Attendance", "Prev Attendance", "Behavior Impact", "Present Attendance"],
-            fill: "toself",
-            fillcolor: 'rgba(25, 118, 210, 0.2)',
-            line: { color: '#1976d2', width: 3 },
-            marker: { color: '#1976d2', size: 8 },
-            hovertemplate: '<b>%{theta}</b><br>Value: %{r:.1f}%<extra></extra>'
-        }], layout, window.defaultChartConfig);
+                fill: 'tozeroy', fillcolor: 'rgba(25, 118, 210, 0.1)',
+                text: marks.map(m => m.toFixed(1) + '%'),
+                textposition: 'top center',
+                textfont: { size: 12, color: '#1976d2' },
+                hovertemplate: '<b>%{x}</b><br>Marks: %{y:.1f}%<extra></extra>'
+            }];
+
+            Plotly.newPlot("st-chart-marks", traces, layout, window.defaultChartConfig);
+        } else {
+            // No semester marks available - show a message
+            document.getElementById("st-chart-marks").innerHTML = `
+                <div style="display:flex;align-items:center;justify-content:center;height:400px;color:#999;font-size:16px;">
+                    <div style="text-align:center;">
+                        <i class="fa-solid fa-chart-line" style="font-size:48px;margin-bottom:12px;color:#ccc;"></i>
+                        <p>No semester marks available yet</p>
+                    </div>
+                </div>`;
+        }
     }
 
-    // Scores Bar Chart
-    if (document.getElementById("st-chart-scores")) {
-        const layout = {
-            ...window.defaultLayout,
-            title: {
-                text: "Overall Scores",
-                font: { size: 18, color: '#1976d2' },
-                x: 0.5
-            },
-            yaxis: { 
-                range: [0, 100], 
-                title: { text: 'Score (%)', font: { size: 14 } },
-                gridcolor: 'rgba(0,0,0,0.1)'
-            },
-            xaxis: { 
-                title: { text: 'Metrics', font: { size: 14 } },
-                gridcolor: 'rgba(0,0,0,0.1)'
-            },
-            height: 400
-        };
-        
-        Plotly.newPlot("st-chart-scores", [{
-            x: ["Performance", "Risk", "Dropout"],
-            y: [f.performance_overall, f.risk_score, f.dropout_score],
-            type: "bar",
-            marker: { 
-                color: ['#4CAF50', '#FF9800', '#F44336'],
-                line: { color: '#fff', width: 2 }
-            },
-            hovertemplate: '<b>%{x}</b><br>Score: %{y:.1f}%<extra></extra>'
-        }], layout, window.defaultChartConfig);
-    }
-
-    // Donut Chart
+    // 2. Performance Breakdown (Donut Chart)
     if (document.getElementById("st-chart-donut")) {
         const layout = {
             ...window.defaultLayout,
-            title: {
-                text: "Performance Composition",
-                font: { size: 18, color: '#1976d2' },
-                x: 0.5
-            },
-            showlegend: true,
-            legend: { 
-                orientation: 'h', 
-                y: -0.15,
-                x: 0.5,
-                xanchor: 'center',
-                font: { size: 12 }
-            },
-            height: 400
+            title: { text: "Performance Factor Analysis", font: { size: 18, color: '#1976d2' }, x: 0.5 },
+            showlegend: true, height: 400
         };
-        
+
         Plotly.newPlot("st-chart-donut", [{
             values: [f.past_avg, f.internal_pct, f.attendance_pct, f.behavior_pct],
-            labels: ["Past Average", "Internal Marks", "Attendance", "Behavior"],
-            type: "pie",
-            hole: 0.4,
-            marker: { 
-                colors: ['#2196F3', '#4CAF50', '#FF9800', '#9C27B0'],
-                line: { color: '#fff', width: 2 }
-            },
+            labels: ["Academic History", "Current Internals", "Attendance Rate", "Behavior Score"],
+            type: "pie", hole: 0.5,
+            marker: { colors: ['#2196F3', '#4CAF50', '#FF9800', '#9C27B0'] },
             textinfo: 'label+percent',
-            textposition: 'auto',
-            hovertemplate: '<b>%{label}</b><br>Score: %{value:.1f}%<br>Percentage: %{percent}<extra></extra>'
+            hovertemplate: '<b>%{label}</b><br>Score: %{value:.1f}%<br>Share: %{percent}<extra></extra>'
         }], layout, window.defaultChartConfig);
     }
 
-    // Performance Gauge
+    // 3. Risk Assessment Radar
+    if (document.getElementById("st-chart-radar")) {
+        const layout = {
+            ...window.defaultLayout,
+            title: { text: "Multi-Dimensional Risk Profile", font: { size: 18, color: '#1976d2' }, x: 0.5 },
+            polar: { radialaxis: { visible: true, range: [0, 100] } },
+            height: 400
+        };
+
+        Plotly.newPlot("st-chart-radar", [{
+            type: "scatterpolar",
+            r: [f.performance_overall, 100 - f.risk_score, f.attendance_pct, f.behavior_pct, f.internal_pct],
+            theta: ["Academic Performance", "Stability Index", "Attendance", "Behavior", "Current Progress"],
+            fill: "toself", fillcolor: 'rgba(25, 118, 210, 0.2)',
+            line: { color: '#1976d2', width: 3 },
+            marker: { color: '#1976d2', size: 8 }
+        }], layout, window.defaultChartConfig);
+    }
+
+    // 4. Comparative Metrics (Horizontal Bar)
+    if (document.getElementById("st-chart-scores")) {
+        const layout = {
+            ...window.defaultLayout,
+            title: { text: "Performance vs Risk Indicators", font: { size: 18, color: '#1976d2' }, x: 0.5 },
+            xaxis: { range: [0, 100], title: { text: 'Score (%)' } },
+            yaxis: { title: { text: 'Metrics' } },
+            height: 400
+        };
+
+        Plotly.newPlot("st-chart-scores", [{
+            y: ["Performance", "Attendance", "Behavior", "Risk Level", "Dropout Risk"],
+            x: [f.performance_overall, f.attendance_pct, f.behavior_pct, 100 - f.risk_score, 100 - f.dropout_score],
+            type: "bar", orientation: 'h',
+            marker: { color: ['#4CAF50', '#2196F3', '#9C27B0', '#FF9800', '#F44336'] },
+            hovertemplate: '<b>%{y}</b><br>Score: %{x:.1f}%<extra></extra>'
+        }], layout, window.defaultChartConfig);
+    }
+
+    // 5. Performance Gauge
     if (document.getElementById("st-chart-gauge-perf")) {
         const layout = {
             ...window.defaultLayout,
-            title: {
-                text: "Performance Gauge",
-                font: { size: 18, color: '#1976d2' },
-                x: 0.5
-            },
-            height: 400,
-            margin: { l: 40, r: 40, t: 80, b: 40 }
+            title: { text: "Overall Performance Gauge", font: { size: 18, color: '#1976d2' }, x: 0.5 },
+            height: 400
         };
-        
+
         Plotly.newPlot("st-chart-gauge-perf", [{
-            type: "indicator",
-            mode: "gauge+number+delta",
+            type: "indicator", mode: "gauge+number+delta",
             value: f.performance_overall,
-            delta: { reference: 70, increasing: { color: "#4CAF50" }, decreasing: { color: "#F44336" } },
+            delta: { reference: 70 },
             gauge: {
-                axis: { range: [0, 100], tickfont: { size: 12 } },
+                axis: { range: [0, 100] },
                 steps: [
-                    { range: [0, 50], color: "#ffcdd2" },
-                    { range: [50, 70], color: "#fff9c4" },
+                    { range: [0, 40], color: "#ffcdd2" },
+                    { range: [40, 70], color: "#fff9c4" },
                     { range: [70, 100], color: "#c8e6c9" }
                 ],
-                bar: { color: "#1976d2", thickness: 0.8 },
-                threshold: {
-                    line: { color: "red", width: 4 },
-                    thickness: 0.75,
-                    value: 70
-                }
-            },
-            number: { font: { size: 24 } }
+                bar: { color: "#1976d2" },
+                threshold: { line: { color: "red", width: 4 }, thickness: 0.75, value: 70 }
+            }
         }], layout, window.defaultChartConfig);
     }
 
-    // Attendance Gauge
+    // 6. Attendance Gauge
     if (document.getElementById("st-chart-gauge-att")) {
         const layout = {
             ...window.defaultLayout,
-            title: {
-                text: "Attendance Gauge",
-                font: { size: 18, color: '#1976d2' },
-                x: 0.5
-            },
-            height: 400,
-            margin: { l: 40, r: 40, t: 80, b: 40 }
+            title: { text: "Attendance Performance", font: { size: 18, color: '#1976d2' }, x: 0.5 },
+            height: 400
         };
-        
+
         Plotly.newPlot("st-chart-gauge-att", [{
-            type: "indicator",
-            mode: "gauge+number+delta",
+            type: "indicator", mode: "gauge+number",
             value: f.attendance_pct,
-            delta: { reference: 75, increasing: { color: "#4CAF50" }, decreasing: { color: "#F44336" } },
             gauge: {
-                axis: { range: [0, 100], tickfont: { size: 12 } },
+                axis: { range: [0, 100] },
                 steps: [
                     { range: [0, 75], color: "#ffcdd2" },
                     { range: [75, 100], color: "#c8e6c9" }
                 ],
-                bar: { color: "#00897b", thickness: 0.8 },
-                threshold: {
-                    line: { color: "orange", width: 4 },
-                    thickness: 0.75,
-                    value: 75
-                }
-            },
-            number: { font: { size: 24 } }
+                bar: { color: "#00897b" },
+                threshold: { line: { color: "orange", width: 4 }, thickness: 0.75, value: 75 }
+            }
         }], layout, window.defaultChartConfig);
     }
 }
@@ -675,12 +629,13 @@ function renderStudentCharts(result) {
 function renderStudentSummary(result) {
     const f = result.features;
     const p = result.predictions;
+    const s = result.student;
 
     const summaryDiv = document.getElementById("st-summary-text");
     const suggUl = document.getElementById("st-suggestions");
-    
+
     if (!summaryDiv || !suggUl) return;
-    
+
     suggUl.innerHTML = "";
 
     let alertNotice = "";
@@ -690,73 +645,109 @@ function renderStudentSummary(result) {
         </div>`;
     }
 
+    // Enhanced AI-powered summary
+    const performanceInsight = f.performance_overall >= 80 ? "exceptional academic performance" :
+        f.performance_overall >= 70 ? "good academic standing" :
+            f.performance_overall >= 60 ? "moderate performance with room for improvement" :
+                "concerning academic performance requiring immediate intervention";
+
+    const attendanceInsight = f.attendance_pct >= 90 ? "excellent attendance record" :
+        f.attendance_pct >= 80 ? "good attendance pattern" :
+            f.attendance_pct >= 70 ? "irregular attendance needing attention" :
+                "poor attendance requiring urgent intervention";
+
+    const riskAssessment = p.risk_label === 'high' ? "high-risk student requiring comprehensive support" :
+        p.risk_label === 'medium' ? "moderate risk with preventive measures needed" :
+            "low-risk student with stable academic trajectory";
+
     summaryDiv.innerHTML = `
         ${alertNotice}
-        <p><i class="fa-solid fa-chart-bar"></i> Overall academic performance is <b>${p.performance_label.toUpperCase()}</b> (${f.performance_overall.toFixed(1)}%).</p>
-        <p><i class="fa-solid fa-triangle-exclamation"></i> Risk indicators: <b>${p.risk_label.toUpperCase()}</b>, Dropout risk: <b>${p.dropout_label.toUpperCase()}</b>.</p>
-        <p><i class="fa-solid fa-calendar-check"></i> Attendance: <b>${f.attendance_pct.toFixed(1)}%</b> (Present: ${f.present_att}%, Previous: ${f.prev_att}%).</p>
+        <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 15px;">
+            <h4 style="color: #1976d2; margin: 0 0 10px 0;"><i class="fa-solid fa-brain"></i> AI-Powered Analysis</h4>
+            <p><strong>${s.NAME}</strong> demonstrates ${performanceInsight} with ${attendanceInsight}. 
+            Current assessment indicates this is a ${riskAssessment}.</p>
+        </div>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 15px;">
+            <div style="background: #e3f2fd; padding: 12px; border-radius: 8px; text-align: center;">
+                <i class="fa-solid fa-chart-line" style="font-size: 24px; color: #1976d2; margin-bottom: 8px;"></i>
+                <div><strong>Performance Score</strong></div>
+                <div style="font-size: 18px; font-weight: bold; color: #1976d2;">${f.performance_overall.toFixed(1)}%</div>
+            </div>
+            <div style="background: #fff3e0; padding: 12px; border-radius: 8px; text-align: center;">
+                <i class="fa-solid fa-calendar-check" style="font-size: 24px; color: #ff9800; margin-bottom: 8px;"></i>
+                <div><strong>Attendance Rate</strong></div>
+                <div style="font-size: 18px; font-weight: bold; color: #ff9800;">${f.attendance_pct.toFixed(1)}%</div>
+            </div>
+            <div style="background: #f3e5f5; padding: 12px; border-radius: 8px; text-align: center;">
+                <i class="fa-solid fa-user-check" style="font-size: 24px; color: #9c27b0; margin-bottom: 8px;"></i>
+                <div><strong>Behavior Score</strong></div>
+                <div style="font-size: 18px; font-weight: bold; color: #9c27b0;">${f.behavior_pct.toFixed(1)}%</div>
+            </div>
+        </div>
     `;
 
-    function addSuggestion(t) {
+    function addSuggestion(icon, text, priority = 'normal') {
         const li = document.createElement("li");
-        li.innerHTML = `<i class="fa-solid fa-lightbulb" style="color: #1976d2; margin-right: 8px;"></i>${t}`;
+        const priorityColor = priority === 'critical' ? '#f44336' : priority === 'high' ? '#ff9800' : '#1976d2';
+        li.innerHTML = `<i class="fa-solid ${icon}" style="color: ${priorityColor}; margin-right: 8px;"></i>${text}`;
+        li.style.marginBottom = '8px';
         suggUl.appendChild(li);
     }
 
-    // Enhanced suggestions based on performance levels
+    // Enhanced AI-driven suggestions
     if (p.performance_label === "poor") {
-        addSuggestion("<strong>CRITICAL:</strong> Immediate intervention required - schedule emergency counseling session within 24 hours.");
-        addSuggestion("Implement intensive remedial program with daily 1-hour sessions for 2 weeks.");
-        addSuggestion("Arrange peer tutoring with high-performing students in the same department.");
-        addSuggestion("Contact parents/guardians immediately to discuss academic support strategies.");
+        addSuggestion('fa-exclamation-triangle', '<strong>CRITICAL INTERVENTION:</strong> Schedule emergency academic counseling within 24 hours', 'critical');
+        addSuggestion('fa-user-graduate', 'Implement intensive 1-on-1 tutoring program with subject matter experts', 'critical');
+        addSuggestion('fa-users', 'Arrange peer mentoring with top-performing students from same department', 'high');
+        addSuggestion('fa-phone', 'Contact parents/guardians immediately to discuss comprehensive support plan', 'critical');
     } else if (p.performance_label === "medium") {
-        addSuggestion("Schedule bi-weekly mentoring sessions to monitor progress and prevent decline.");
-        addSuggestion("Provide targeted practice materials focusing on weak subject areas.");
-        addSuggestion("Create personalized study schedule with specific milestones and deadlines.");
-    } else if (p.performance_label === "high") {
-        addSuggestion("<strong>Excellent performance!</strong> Consider advanced learning opportunities and leadership roles.");
-        addSuggestion("Encourage participation in academic competitions and research projects.");
+        addSuggestion('fa-calendar-alt', 'Schedule bi-weekly progress monitoring sessions with academic advisor', 'high');
+        addSuggestion('fa-book', 'Provide targeted study materials and practice resources for weak areas', 'normal');
+        addSuggestion('fa-clock', 'Create structured study schedule with specific daily and weekly goals', 'normal');
+    } else {
+        addSuggestion('fa-trophy', '<strong>Excellent Performance!</strong> Consider advanced learning opportunities and leadership roles', 'normal');
+        addSuggestion('fa-star', 'Nominate for academic excellence programs and scholarship opportunities', 'normal');
     }
-    
-    // Risk-based suggestions
+
     if (p.risk_label === "high") {
-        addSuggestion("Assign dedicated mentor for weekly one-on-one sessions to identify and address learning barriers.");
-        addSuggestion("Conduct learning style assessment to customize teaching approach.");
-        addSuggestion("Implement weekly progress tracking with specific, measurable goals.");
+        addSuggestion('fa-shield-alt', 'Assign dedicated mentor for weekly one-on-one support sessions', 'high');
+        addSuggestion('fa-brain', 'Conduct comprehensive learning style assessment for personalized approach', 'high');
+        addSuggestion('fa-chart-line', 'Implement daily progress tracking with immediate feedback mechanisms', 'high');
     }
-    
-    // Dropout prevention strategies
+
     if (p.dropout_label === "high") {
-        addSuggestion("<strong>HIGH DROPOUT RISK:</strong> Implement comprehensive retention strategy immediately.");
-        addSuggestion("Engage family support system - schedule parent-teacher conference within 48 hours.");
-        addSuggestion("Connect with student counseling services for emotional and academic support.");
-    } else if (p.dropout_label === "medium") {
-        addSuggestion("Monitor closely for early warning signs and maintain regular check-ins.");
-        addSuggestion("Highlight student's strengths and celebrate small wins to boost motivation.");
+        addSuggestion('fa-life-ring', '<strong>DROPOUT PREVENTION:</strong> Activate comprehensive retention strategy immediately', 'critical');
+        addSuggestion('fa-home', 'Engage family support system - schedule parent conference within 48 hours', 'critical');
+        addSuggestion('fa-heart', 'Connect with student counseling services for emotional and motivational support', 'high');
     }
-    
-    // Attendance-specific interventions
+
     if (f.attendance_pct < 60) {
-        addSuggestion("<strong>CRITICAL ATTENDANCE ISSUE:</strong> Investigate underlying causes (health, transportation, family issues).");
-        addSuggestion("Implement daily attendance monitoring with immediate follow-up for absences.");
+        addSuggestion('fa-calendar-times', '<strong>ATTENDANCE CRISIS:</strong> Investigate underlying causes (health, transport, family)', 'critical');
+        addSuggestion('fa-bell', 'Implement daily attendance monitoring with immediate absence follow-up', 'high');
     } else if (f.attendance_pct < 75) {
-        addSuggestion("Create structured attendance improvement plan with weekly targets and rewards.");
-        addSuggestion("Set up automated attendance alerts for parents/guardians.");
+        addSuggestion('fa-calendar-plus', 'Create attendance improvement plan with weekly targets and incentives', 'high');
+        addSuggestion('fa-mobile-alt', 'Set up automated attendance alerts for parents/guardians', 'normal');
     }
-    
-    // Internal marks improvement
+
     if (f.internal_pct < 40) {
-        addSuggestion("<strong>URGENT:</strong> Conduct diagnostic assessment to identify specific knowledge gaps.");
-        addSuggestion("Provide intensive subject-specific tutoring with qualified instructors.");
+        addSuggestion('fa-search', 'Conduct diagnostic assessment to identify specific knowledge gaps', 'high');
+        addSuggestion('fa-chalkboard-teacher', 'Provide intensive subject-specific tutoring with qualified instructors', 'high');
     } else if (f.internal_pct < 60) {
-        addSuggestion("Increase frequency of internal assessments and provide immediate feedback.");
-        addSuggestion("Focus on concept clarity through visual aids and practical examples.");
+        addSuggestion('fa-clipboard-check', 'Increase frequency of formative assessments with immediate feedback', 'normal');
+        addSuggestion('fa-lightbulb', 'Focus on concept clarity through visual aids and practical examples', 'normal');
     }
-    
-    // Positive reinforcement for good performance
+
+    // Positive reinforcement
     if (f.performance_overall >= 80) {
-        addSuggestion("<strong>Outstanding performance!</strong> Consider nominating for academic excellence awards.");
-        addSuggestion("Encourage student to mentor struggling peers - benefits both parties.");
+        addSuggestion('fa-medal', 'Recognize outstanding performance - consider for academic awards and honors', 'normal');
+        addSuggestion('fa-hands-helping', 'Encourage peer mentoring role to help struggling classmates', 'normal');
+    }
+
+    // Behavioral insights
+    if (f.behavior_pct >= 80) {
+        addSuggestion('fa-thumbs-up', 'Excellent behavior - consider for leadership and responsibility roles', 'normal');
+    } else if (f.behavior_pct < 60) {
+        addSuggestion('fa-comments', 'Address behavioral concerns through counseling and mentorship', 'high');
     }
 }
 
@@ -772,15 +763,15 @@ function showAlertModal() {
     const s = currentStudentResult.student;
     const p = currentStudentResult.predictions;
     const f = currentStudentResult.features;
-    
+
     const modal = createAlertModal();
-    
+
     // Populate student info
     modal.querySelector('.student-name').textContent = s.NAME;
     modal.querySelector('.student-rno').textContent = s.RNO;
     modal.querySelector('.student-dept').textContent = s.DEPT;
     modal.querySelector('.student-year').textContent = `Year ${s.YEAR}, Semester ${s.CURR_SEM}`;
-    
+
     // Populate metrics
     modal.querySelector('.perf-value').textContent = `${f.performance_overall.toFixed(1)}%`;
     modal.querySelector('.perf-label-text').textContent = p.performance_label.toUpperCase();
@@ -788,7 +779,7 @@ function showAlertModal() {
     modal.querySelector('.risk-label-text').textContent = p.risk_label.toUpperCase();
     modal.querySelector('.dropout-value').textContent = `${f.dropout_score.toFixed(1)}%`;
     modal.querySelector('.dropout-label-text').textContent = p.dropout_label.toUpperCase();
-    
+
     document.body.appendChild(modal);
     modal.classList.add('show');
 }
@@ -868,7 +859,7 @@ async function sendAlertEmailDirect() {
     const f = currentStudentResult.features;
 
     const email = "ashokkumarboya999@gmail.com";
-    
+
     const payload = {
         email: email,
         student: s,
@@ -880,7 +871,7 @@ async function sendAlertEmailDirect() {
     try {
         const res = await api("/api/send-alert", "POST", payload);
         hideLoading();
-        
+
         if (res.success) {
             alert("✅ Mentor alert sent successfully!");
         } else {
@@ -895,7 +886,7 @@ async function sendAlertEmailDirect() {
 function getAlertLevel(predictions, features) {
     const p = predictions;
     const f = features;
-    
+
     if (p.performance_label === 'poor' || p.risk_label === 'high' || p.dropout_label === 'high' || f.attendance_pct < 60) {
         return {
             level: 'critical',
@@ -924,7 +915,7 @@ function getActionItems(predictions, features, level) {
     const p = predictions;
     const f = features;
     const items = [];
-    
+
     if (level === 'critical') {
         items.push(
             { icon: '🚨', text: 'Schedule EMERGENCY counseling session within 12 hours' },
@@ -954,14 +945,14 @@ function getActionItems(predictions, features, level) {
             { icon: '👨‍🏫', text: 'Consider peer mentoring roles' }
         );
     }
-    
+
     if (f.attendance_pct < 75) {
         items.push({ icon: '📅', text: 'Address attendance issues immediately' });
     }
     if (f.internal_pct < 60) {
         items.push({ icon: '📝', text: 'Provide intensive academic support' });
     }
-    
+
     return items;
 }
 
@@ -1033,9 +1024,9 @@ function fillGroupTable(tableId, rows, includeDept = false) {
         console.warn(`Table tbody not found for ${tableId}`);
         return;
     }
-    
+
     tbody.innerHTML = "";
-    
+
     if (!rows || rows.length === 0) {
         const tr = document.createElement("tr");
         tr.innerHTML = `<td colspan="${includeDept ? 12 : 11}" style="text-align: center; padding: 30px; color: #666;">
@@ -1045,16 +1036,16 @@ function fillGroupTable(tableId, rows, includeDept = false) {
         tbody.appendChild(tr);
         return;
     }
-    
+
     rows.forEach(r => {
         try {
             const tr = document.createElement("tr");
-            
+
             // Create enhanced label spans with colors
             const perfLabel = `<span class="label-${r.performance_label || 'unknown'}">${(r.performance_label || 'unknown').toUpperCase()}</span>`;
             const riskLabel = `<span class="label-${r.risk_label || 'unknown'}">${(r.risk_label || 'unknown').toUpperCase()}</span>`;
             const dropLabel = `<span class="label-${r.dropout_label || 'unknown'}">${(r.dropout_label || 'unknown').toUpperCase()}</span>`;
-            
+
             tr.innerHTML = `
                 <td class="student-rno">${r.RNO || ''}</td>
                 <td class="student-name">${r.NAME || ''}</td>
@@ -1085,27 +1076,27 @@ async function viewStudentFromTable(rno) {
         showLoading('Loading student analytics...');
         const result = await api('/api/student/search', 'POST', { rno });
         hideLoading();
-        
+
         if (result.success) {
             currentStudent = result.student;
             await analyseStudent(currentStudent);
-            
+
             // Switch to student mode
             document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
             const studentBtn = document.querySelector('[data-mode="student"]');
             if (studentBtn) studentBtn.classList.add('active');
-            
+
             document.querySelectorAll('.mode-section').forEach(sec => {
                 sec.classList.remove('active');
                 sec.classList.add('hidden');
             });
-            
+
             const studentMode = document.getElementById('mode-student');
             if (studentMode) {
                 studentMode.classList.remove('hidden');
                 studentMode.classList.add('active');
             }
-            
+
             // Scroll to top smoothly
             window.scrollTo({ top: 0, behavior: 'smooth' });
         } else {
@@ -1121,15 +1112,15 @@ async function viewStudentFromTable(rno) {
 function renderLabelDonut(elementId, counts, title) {
     const element = document.getElementById(elementId);
     if (!element) return;
-    
+
     const labels = Object.keys(counts || {});
     const values = Object.values(counts || {});
-    
+
     if (labels.length === 0 || values.every(v => v === 0)) {
         element.innerHTML = `<div style="display: flex; align-items: center; justify-content: center; height: 400px; color: #666; font-size: 16px;">No data available</div>`;
         return;
     }
-    
+
     const layout = {
         ...window.defaultLayout,
         title: {
@@ -1146,13 +1137,13 @@ function renderLabelDonut(elementId, counts, title) {
         },
         height: 450
     };
-    
+
     Plotly.newPlot(elementId, [{
-        labels: labels, 
+        labels: labels,
         values: values,
-        type: "pie", 
+        type: "pie",
         hole: 0.4,
-        marker: { 
+        marker: {
             colors: ['#4CAF50', '#FF9800', '#F44336', '#2196F3', '#9C27B0'],
             line: { color: '#fff', width: 2 }
         },
@@ -1165,16 +1156,16 @@ function renderLabelDonut(elementId, counts, title) {
 function render3DScatter(elementId, scores, title) {
     const element = document.getElementById(elementId);
     if (!element) return;
-    
+
     const perfScores = scores?.performance || [];
     const riskScores = scores?.risk || [];
     const dropScores = scores?.dropout || [];
-    
+
     if (perfScores.length === 0) {
         element.innerHTML = `<div style="display: flex; align-items: center; justify-content: center; height: 400px; color: #666; font-size: 16px;">No data available</div>`;
         return;
     }
-    
+
     const layout = {
         ...window.defaultLayout,
         title: {
@@ -1182,22 +1173,22 @@ function render3DScatter(elementId, scores, title) {
             font: { size: 18, color: '#1976d2' },
             x: 0.5
         },
-        scene: { 
-            xaxis: { 
+        scene: {
+            xaxis: {
                 title: { text: "Performance Score", font: { size: 14 } },
                 backgroundcolor: "rgba(255,255,255,0.8)",
                 gridcolor: "rgba(255,255,255,0.8)",
                 showbackground: true,
                 zerolinecolor: "rgba(255,255,255,0.8)"
-            }, 
-            yaxis: { 
+            },
+            yaxis: {
                 title: { text: "Risk Score", font: { size: 14 } },
                 backgroundcolor: "rgba(255,255,255,0.8)",
                 gridcolor: "rgba(255,255,255,0.8)",
                 showbackground: true,
                 zerolinecolor: "rgba(255,255,255,0.8)"
-            }, 
-            zaxis: { 
+            },
+            zaxis: {
                 title: { text: "Dropout Score", font: { size: 14 } },
                 backgroundcolor: "rgba(255,255,255,0.8)",
                 gridcolor: "rgba(255,255,255,0.8)",
@@ -1210,14 +1201,14 @@ function render3DScatter(elementId, scores, title) {
         },
         height: 500
     };
-    
+
     Plotly.newPlot(elementId, [{
-        x: perfScores, 
-        y: riskScores, 
+        x: perfScores,
+        y: riskScores,
         z: dropScores,
-        mode: "markers", 
-        type: "scatter3d", 
-        marker: { 
+        mode: "markers",
+        type: "scatter3d",
+        marker: {
             size: 6,
             color: perfScores,
             colorscale: 'Viridis',
@@ -1236,35 +1227,38 @@ function render3DScatter(elementId, scores, title) {
 async function analyseDepartment() {
     const deptSelect = document.getElementById("d-dept");
     const yearSelect = document.getElementById("d-year");
-    
+
     if (!deptSelect || !yearSelect) {
         alert("Department and year selection not found");
         return;
     }
-    
+
     const dept = deptSelect.value;
     const year = yearSelect.value;
-    
+
     if (!dept) {
         alert("Please select a department");
         return;
     }
-    
-    const payload = { dept: dept, year: year };
+
     showLoading("Analysing department...");
-    
+
     try {
-        const res = await api("/api/department/analyze", "POST", payload);
+        // Get department-specific data
+        const res = await api("/api/department/analyze", "POST", { dept: dept, year: year });
+        // Get aggregated data for proper plots
+        const aggRes = await api("/api/analytics/aggregated", "POST", { type: "department" });
+
         hideLoading();
-        
-        if (!res || !res.success) { 
-            alert(res?.message || "Department analysis failed. Please try again."); 
-            return; 
+
+        if (!res || !res.success) {
+            alert(res?.message || "Department analysis failed. Please try again.");
+            return;
         }
-        
+
         const reportDiv = document.getElementById("dept-report");
         if (reportDiv) reportDiv.classList.remove("hidden");
-        
+
         const st = res.stats || {};
         const elements = {
             "dept-kpi-total": `<i class="fa-solid fa-users"></i> Total Students<br><b>${st.total_students || 0}</b>`,
@@ -1272,23 +1266,30 @@ async function analyseDepartment() {
             "dept-kpi-high-risk": `<i class="fa-solid fa-triangle-exclamation"></i> High Risk<br><b>${st.high_risk || 0}</b>`,
             "dept-kpi-high-drop": `<i class="fa-solid fa-user-xmark"></i> High Dropout<br><b>${st.high_dropout || 0}</b>`
         };
-        
+
         Object.entries(elements).forEach(([id, html]) => {
             const el = document.getElementById(id);
             if (el) el.innerHTML = html;
         });
-        
+
         fillGroupTable("dept-table", (res.table || []).slice(0, 120));
-        renderLabelDonut("dept-chart-perf-donut", res.label_counts?.performance || {}, "Performance Distribution");
-        renderLabelDonut("dept-chart-risk-donut", res.label_counts?.risk || {}, "Risk Distribution");
-        renderLabelDonut("dept-chart-drop-donut", res.label_counts?.dropout || {}, "Dropout Distribution");
-        render3DScatter("dept-chart-3d", res.scores || {performance: [], risk: [], dropout: []}, "3D Performance-Risk-Dropout");
-        
-        // Add drill-down handlers for department charts
+
+        // Use aggregated data for correct plots
+        if (aggRes && aggRes.success) {
+            renderDepartmentCharts(aggRes.data, res, dept);
+        } else {
+            // Fallback to basic charts
+            renderLabelDonut("dept-chart-perf-donut", res.label_counts?.performance || {}, "Performance Distribution");
+            renderLabelDonut("dept-chart-risk-donut", res.label_counts?.risk || {}, "Risk Distribution");
+            renderLabelDonut("dept-chart-drop-donut", res.label_counts?.dropout || {}, "Dropout Distribution");
+        }
+
+        render3DScatter("dept-chart-3d", res.scores || { performance: [], risk: [], dropout: [] }, "3D Performance-Risk-Dropout");
+
         setTimeout(() => {
             addDepartmentDrilldownHandlers(dept, year);
         }, 1000);
-        
+
         const summaryEl = document.getElementById("dept-summary");
         if (summaryEl) {
             summaryEl.innerHTML = `
@@ -1303,34 +1304,172 @@ async function analyseDepartment() {
     }
 }
 
+function renderDepartmentCharts(aggData, localData, selectedDept) {
+    const students = localData.table || [];
+
+    // 1. Sunburst Chart: Year -> Performance Label
+    if (document.getElementById("dept-chart-perf-donut")) {
+        // Aggregating data for Sunburst
+        const hierarchy = {};
+        students.forEach(s => {
+            const y = `Year ${s.YEAR}`;
+            const p = s.performance_label || 'Unknown';
+            if (!hierarchy[y]) hierarchy[y] = {};
+            if (!hierarchy[y][p]) hierarchy[y][p] = 0;
+            hierarchy[y][p]++;
+        });
+
+        const labels = ["Department"];
+        const parents = [""];
+        const values = [students.length];
+        const colors = ["#E3F2FD"]; // Root color
+
+        Object.keys(hierarchy).forEach(year => {
+            labels.push(year);
+            parents.push("Department");
+            let yearTotal = 0;
+            Object.values(hierarchy[year]).forEach(v => yearTotal += v);
+            values.push(yearTotal);
+            colors.push("#64B5F6"); // Year color
+
+            Object.keys(hierarchy[year]).forEach(perf => {
+                labels.push(`${perf} (${year})`);
+                parents.push(year);
+                values.push(hierarchy[year][perf]);
+                // Color mapping for labels
+                if (perf.includes('high')) colors.push("#4CAF50");
+                else if (perf.includes('medium') || perf.includes('normal')) colors.push("#FF9800");
+                else colors.push("#F44336");
+            });
+        });
+
+        const layout = {
+            ...window.defaultLayout,
+            title: { text: "Performance Hierarchy (Year -> Label)", font: { size: 16, color: '#1976d2' } },
+            margin: { l: 0, r: 0, b: 0, t: 40 }
+        };
+
+        try {
+            Plotly.newPlot("dept-chart-perf-donut", [{
+                type: "sunburst",
+                labels: labels, parents: parents, values: values,
+                branchvalues: "total",
+                marker: { line: { width: 2 } },
+                hovertemplate: '<b>%{label}</b><br>Count: %{value}<br>Ratio: %{percentRoot:.1%}<extra></extra>'
+            }], layout, window.defaultChartConfig);
+        } catch (e) {
+            console.error("Sunburst Error:", e);
+            alert("Error rendering Sunburst chart: " + e.message);
+        }
+    }
+
+    // 2. Heatmap: Attendance vs Performance
+    if (document.getElementById("dept-chart-risk-donut")) {
+        const x = students.map(s => s.attendance_pct || 0);
+        const y = students.map(s => s.performance_overall || 0);
+
+        const layout = {
+            ...window.defaultLayout,
+            title: { text: "Attendance vs Performance Density", font: { size: 16, color: '#1976d2' } },
+            xaxis: { title: "Attendance (%)" },
+            yaxis: { title: "Performance (%)" }
+        };
+
+        Plotly.newPlot("dept-chart-risk-donut", [{
+            x: x, y: y,
+            type: 'histogram2dcontour',
+            colorscale: 'Blues',
+            ncontours: 20,
+            showscale: false
+        }, {
+            x: x, y: y,
+            mode: 'markers',
+            type: 'scatter',
+            marker: { color: 'rgba(0,0,0,0.3)', size: 4 },
+            showlegend: false
+        }], layout, window.defaultChartConfig);
+    }
+
+    // 3. Funnel Chart: Assessment Stages
+    if (document.getElementById("dept-chart-drop-donut")) {
+        const total = students.length;
+        const passedInternal = students.filter(s => (s.performance_overall || 0) > 40).length;
+        const lowRisk = students.filter(s => (s.risk_label === 'low')).length;
+        const highPerf = students.filter(s => (s.performance_label === 'high')).length;
+
+        const layout = {
+            ...window.defaultLayout,
+            title: { text: "Student Success Funnel", font: { size: 16, color: '#1976d2' } },
+            margin: { l: 80, r: 40 }
+        };
+
+        Plotly.newPlot("dept-chart-drop-donut", [{
+            type: 'funnel',
+            y: ['Total Students', 'Passed (>40%)', 'Low Risk', 'High Performers'],
+            x: [total, passedInternal, lowRisk, highPerf],
+            textinfo: "value+percent initial",
+            marker: { color: ["#2196F3", "#4CAF50", "#8BC34A", "#1E88E5"] }
+        }], layout, window.defaultChartConfig);
+    }
+
+    // 4. Box Plot: Performance by Year
+    if (document.getElementById("dept-chart-3d")) {
+        const traces = [];
+        const years = [...new Set(students.map(s => s.YEAR))].sort();
+
+        years.forEach(year => {
+            const yearScores = students.filter(s => s.YEAR === year).map(s => s.performance_overall || 0);
+            traces.push({
+                y: yearScores,
+                type: 'box',
+                name: `Year ${year}`,
+                boxpoints: false,
+                marker: { color: '#1976d2' }
+            });
+        });
+
+        const layout = {
+            ...window.defaultLayout,
+            title: { text: "Performance Spread by Year", font: { size: 16, color: '#1976d2' } },
+            yaxis: { title: "Score (%)" },
+            showlegend: false
+        };
+
+        Plotly.newPlot("dept-chart-3d", traces, layout, window.defaultChartConfig);
+    }
+}
+
 async function analyseYear() {
     const yearSelect = document.getElementById("y-year");
     if (!yearSelect) {
         alert("Year selection not found");
         return;
     }
-    
+
     const year = yearSelect.value;
     if (!year) {
         alert("Please select a year");
         return;
     }
-    
-    const payload = { year: year };
+
     showLoading("Analysing year...");
-    
+
     try {
-        const res = await api("/api/year/analyze", "POST", payload);
+        // Get year-specific data
+        const res = await api("/api/year/analyze", "POST", { year: year });
+        // Get aggregated data for proper plots
+        const aggRes = await api("/api/analytics/aggregated", "POST", { type: "year" });
+
         hideLoading();
-        
-        if (!res || !res.success) { 
-            alert(res?.message || "Year analysis failed. Please try again."); 
-            return; 
+
+        if (!res || !res.success) {
+            alert(res?.message || "Year analysis failed. Please try again.");
+            return;
         }
-        
+
         const reportDiv = document.getElementById("year-report");
         if (reportDiv) reportDiv.classList.remove("hidden");
-        
+
         const st = res.stats || {};
         const elements = {
             "year-kpi-total": `<i class="fa-solid fa-users"></i> Total Students<br><b>${st.total_students || 0}</b>`,
@@ -1338,79 +1477,34 @@ async function analyseYear() {
             "year-kpi-high-risk": `<i class="fa-solid fa-triangle-exclamation"></i> High Risk<br><b>${st.high_risk || 0}</b>`,
             "year-kpi-high-drop": `<i class="fa-solid fa-user-xmark"></i> High Dropout<br><b>${st.high_dropout || 0}</b>`
         };
-        
+
         Object.entries(elements).forEach(([id, html]) => {
             const el = document.getElementById(id);
             if (el) el.innerHTML = html;
         });
-        
+
         fillGroupTable("year-table", (res.table || []).slice(0, 120), true);
-        renderLabelDonut("year-chart-perf-donut", res.label_counts?.performance || {}, "Performance Labels");
-        render3DScatter("year-chart-3d", res.scores || {performance: [], risk: [], dropout: []}, "3D Performance-Risk-Dropout");
-        
-        // Add drill-down handlers for year charts
+
+        // Use aggregated data for correct plots
+        if (aggRes && aggRes.success) {
+            renderYearCharts(aggRes.data, res, year);
+        } else {
+            // Fallback to basic charts
+            renderLabelDonut("year-chart-perf-donut", res.label_counts?.performance || {}, "Performance Labels");
+        }
+
+        render3DScatter("year-chart-3d", res.scores || { performance: [], risk: [], dropout: [] }, "3D Performance-Risk-Dropout");
+
         setTimeout(() => {
             addYearDrilldownHandlers(year);
         }, 1000);
-        
-        if (document.getElementById("year-chart-box")) {
-            const boxLayout = {
-                ...window.defaultLayout,
-                title: {
-                    text: "Performance Spread Analysis",
-                    font: { size: 18, color: '#1976d2' },
-                    x: 0.5
-                },
-                yaxis: {
-                    title: { text: 'Performance Score (%)', font: { size: 14 } },
-                    gridcolor: 'rgba(0,0,0,0.1)'
-                },
-                height: 450
-            };
-            
-            Plotly.newPlot("year-chart-box", [{ 
-                y: res.scores?.performance || [], 
-                type: "box", 
-                name: "Performance",
-                marker: { color: '#2196F3' },
-                boxpoints: 'outliers',
-                jitter: 0.3,
-                pointpos: -1.8,
-                hovertemplate: '<b>Performance Distribution</b><br>Value: %{y:.1f}%<extra></extra>'
-            }], boxLayout, window.defaultChartConfig);
-        }
-        
+
+        // Performance spread analysis
         if (document.getElementById("year-chart-hist")) {
-            const histLayout = {
-                ...window.defaultLayout,
-                title: {
-                    text: "Performance Distribution Histogram",
-                    font: { size: 18, color: '#1976d2' },
-                    x: 0.5
-                },
-                xaxis: {
-                    title: { text: 'Performance Score (%)', font: { size: 14 } },
-                    gridcolor: 'rgba(0,0,0,0.1)'
-                },
-                yaxis: {
-                    title: { text: 'Number of Students', font: { size: 14 } },
-                    gridcolor: 'rgba(0,0,0,0.1)'
-                },
-                height: 450
-            };
-            
-            Plotly.newPlot("year-chart-hist", [{ 
-                x: res.scores?.performance || [], 
-                type: "histogram",
-                marker: { 
-                    color: '#4CAF50',
-                    line: { color: '#fff', width: 1 }
-                },
-                nbinsx: 20,
-                hovertemplate: '<b>Performance Range</b><br>Score: %{x:.1f}%<br>Count: %{y}<extra></extra>'
-            }], histLayout, window.defaultChartConfig);
+            // Use Violin Plot instead
+            // Logic moved to renderYearCharts
         }
-        
+
         const summaryEl = document.getElementById("year-summary");
         if (summaryEl) {
             summaryEl.innerHTML = `
@@ -1424,21 +1518,177 @@ async function analyseYear() {
     }
 }
 
+function renderYearCharts(aggData, localData, selectedYear) {
+    const students = localData.table || [];
+
+    // 1. Top 5 Performers (Horizontal Bar)
+    if (document.getElementById("year-rank-top")) {
+        const topStudents = [...students]
+            .sort((a, b) => b.performance_overall - a.performance_overall)
+            .slice(0, 5)
+            .reverse(); // For horizontal bar bottom-up
+
+        const layout = {
+            ...window.defaultLayout,
+            title: { text: "🏆 Top 5 High Performers", font: { size: 16, color: '#2E7D32' } },
+            margin: { l: 100, r: 20, t: 40, b: 40 },
+            xaxis: { title: "Performance Score" }
+        };
+
+        try {
+            Plotly.newPlot("year-rank-top", [{
+                type: 'bar', orientation: 'h',
+                x: topStudents.map(s => s.performance_overall),
+                y: topStudents.map(s => s.NAME),
+                marker: { color: '#66BB6A' },
+                text: topStudents.map(s => s.performance_overall + "%"),
+                textposition: 'auto',
+                hovertemplate: '<b>%{y}</b><br>Score: %{x}%<br>Dept: ' + topStudents.map(s => s.DEPT) + '<extra></extra>'
+            }], layout, window.defaultChartConfig);
+        } catch (e) { console.error("Top 5 Error", e); }
+    }
+
+    // 2. Top 5 At-Risk Students (Horizontal Bar)
+    if (document.getElementById("year-rank-risk")) {
+        const riskStudents = [...students]
+            .sort((a, b) => b.risk_score - a.risk_score)
+            .slice(0, 5)
+            .reverse();
+
+        const layout = {
+            ...window.defaultLayout,
+            title: { text: "⚠️ Top 5 At-Risk Students", font: { size: 16, color: '#c62828' } },
+            margin: { l: 100, r: 20, t: 40, b: 40 },
+            xaxis: { title: "Risk Score" }
+        };
+
+        try {
+            Plotly.newPlot("year-rank-risk", [{
+                type: 'bar', orientation: 'h',
+                x: riskStudents.map(s => s.risk_score),
+                y: riskStudents.map(s => s.NAME),
+                marker: { color: '#EF5350' },
+                text: riskStudents.map(s => s.risk_score),
+                textposition: 'auto',
+                hovertemplate: '<b>%{y}</b><br>Risk Score: %{x}<br>Dept: ' + riskStudents.map(s => s.DEPT) + '<extra></extra>'
+            }], layout, window.defaultChartConfig);
+        } catch (e) { console.error("Risk 5 Error", e); }
+    }
+
+    // 3. Risk Composition (Donut) - Reusing 'year-chart-perf-donut'
+    if (document.getElementById("year-chart-perf-donut")) {
+        const riskCounts = localData.label_counts.risk || {};
+        const labels = Object.keys(riskCounts);
+        const values = Object.values(riskCounts);
+        const colors = { 'low': '#66BB6A', 'medium': '#FFCA28', 'high': '#EF5350' };
+
+        const layout = {
+            ...window.defaultLayout,
+            title: { text: "Overall Risk Distribution", font: { size: 16, color: '#1976d2' } }
+        };
+
+        try {
+            Plotly.newPlot("year-chart-perf-donut", [{
+                labels: labels, values: values, type: "pie", hole: 0.4,
+                marker: { colors: labels.map(l => colors[l] || 'grey') },
+                hovertemplate: '<b>%{label}</b>: %{value} students<extra></extra>'
+            }], layout, window.defaultChartConfig);
+        } catch (e) { console.error("Risk Donut Error", e); }
+    }
+
+    // 4. Magic Quadrant Scatter (Attendance vs Performance) - Reusing 'year-chart-scores'
+    if (document.getElementById("year-chart-scores")) {
+        const trace = {
+            x: students.map(s => s.attendance_pct),
+            y: students.map(s => s.performance_overall),
+            text: students.map(s => s.NAME),
+            mode: 'markers',
+            marker: {
+                size: 8,
+                color: students.map(s => {
+                    const depts = ["CSE", "ECE", "MECH", "CIVIL", "EEE", "IT"];
+                    const colors = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd', '#8c564b'];
+                    return colors[depts.indexOf(s.DEPT) % colors.length] || '#333';
+                }),
+                opacity: 0.7
+            },
+            hovertemplate: '<b>%{text}</b><br>Att: %{x}%<br>Perf: %{y}%<extra></extra>'
+        };
+
+        const layout = {
+            ...window.defaultLayout,
+            title: { text: "Magic Quadrant (Attendance vs Marks)", font: { size: 16, color: '#1976d2' } },
+            xaxis: { title: "Attendance %", range: [0, 100] },
+            yaxis: { title: "Performance %", range: [0, 100] },
+            shapes: [
+                { type: 'line', x0: 75, x1: 75, y0: 0, y1: 100, line: { color: 'gray', dash: 'dot' } }, // Att Threshold
+                { type: 'line', x0: 0, x1: 100, y0: 50, y1: 50, line: { color: 'gray', dash: 'dot' } }  // Perf Threshold
+            ]
+        };
+
+        try {
+            Plotly.newPlot("year-chart-scores", [trace], layout, window.defaultChartConfig);
+        } catch (e) { console.error("Scatter Error", e); }
+    }
+
+    // 5. Dept Performance Comparison (Bar) - Reusing 'year-chart-3d'
+    if (document.getElementById("year-chart-3d")) {
+        const deptPerf = {};
+        students.forEach(s => {
+            if (!deptPerf[s.DEPT]) deptPerf[s.DEPT] = [];
+            deptPerf[s.DEPT].push(s.performance_overall);
+        });
+
+        const depts = Object.keys(deptPerf);
+        const avgPerf = depts.map(d => {
+            const scores = deptPerf[d];
+            return scores.reduce((a, b) => a + b, 0) / scores.length;
+        });
+
+        const layout = {
+            ...window.defaultLayout,
+            title: { text: "Avg Performance by Department", font: { size: 16, color: '#1976d2' } },
+            xaxis: { title: "Department" },
+            yaxis: { title: "Avg Score", range: [0, 100] }
+        };
+
+        try {
+            Plotly.newPlot("year-chart-3d", [{
+                x: depts, y: avgPerf, type: 'bar',
+                marker: { color: '#42A5F5' },
+                text: avgPerf.map(v => v.toFixed(1) + "%"),
+                textposition: 'auto'
+            }], layout, window.defaultChartConfig);
+        } catch (e) { console.error("Dept Bar Error", e); }
+    }
+
+    // Clear unused chart container if exists
+    if (document.getElementById("year-chart-hist")) {
+        Plotly.purge("year-chart-hist");
+        document.getElementById("year-chart-hist").innerHTML = "";
+    }
+}
+
+
 async function analyseCollege() {
     showLoading("Analysing college...");
-    
+
     try {
+        // Get college data
         const res = await api("/api/college/analyze", "GET");
+        // Get aggregated data for proper plots
+        const aggRes = await api("/api/analytics/aggregated", "POST", { type: "college" });
+
         hideLoading();
-        
-        if (!res || !res.success) { 
-            alert(res?.message || "College analysis failed. Please try again."); 
-            return; 
+
+        if (!res || !res.success) {
+            alert(res?.message || "College analysis failed. Please try again.");
+            return;
         }
-        
+
         const reportDiv = document.getElementById("college-report");
         if (reportDiv) reportDiv.classList.remove("hidden");
-        
+
         const st = res.stats || {};
         const elements = {
             "clg-kpi-total": `<i class="fa-solid fa-users"></i> Sample Size<br><b>${res.sample_size || 0}</b>`,
@@ -1446,49 +1696,32 @@ async function analyseCollege() {
             "clg-kpi-high-risk": `<i class="fa-solid fa-triangle-exclamation"></i> High Risk<br><b>${st.high_risk || 0}</b>`,
             "clg-kpi-high-drop": `<i class="fa-solid fa-user-xmark"></i> High Dropout<br><b>${st.high_dropout || 0}</b>`
         };
-        
+
         Object.entries(elements).forEach(([id, html]) => {
             const el = document.getElementById(id);
             if (el) el.innerHTML = html;
         });
-        
         fillGroupTable("clg-table", (res.table || []).slice(0, 150), true);
-        renderLabelDonut("clg-chart-perf-donut", res.label_counts?.performance || {}, "Performance");
-        renderLabelDonut("clg-chart-risk-donut", res.label_counts?.risk || {}, "Risk");
-        render3DScatter("clg-chart-3d", res.scores || {performance: [], risk: [], dropout: []}, "3D College Analysis");
-        
-        // Add drill-down handlers for college charts
+
+        // Use aggregated data for correct plots
+        if (aggRes && aggRes.success) {
+            renderCollegeCharts(aggRes.data, res);
+        } else {
+            // Fallback to basic charts
+            renderLabelDonut("clg-chart-perf-donut", res.label_counts?.performance || {}, "Performance");
+            renderLabelDonut("clg-chart-risk-donut", res.label_counts?.risk || {}, "Risk");
+        }
+
+        render3DScatter("clg-chart-3d", res.scores || { performance: [], risk: [], dropout: [] }, "3D College Analysis");
+
         setTimeout(() => {
             addCollegeDrilldownHandlers();
         }, 1000);
-        
+
         if (document.getElementById("clg-chart-box")) {
-            const boxLayout = {
-                ...window.defaultLayout,
-                title: {
-                    text: "College Performance Spread",
-                    font: { size: 18, color: '#1976d2' },
-                    x: 0.5
-                },
-                yaxis: {
-                    title: { text: 'Performance Score (%)', font: { size: 14 } },
-                    gridcolor: 'rgba(0,0,0,0.1)'
-                },
-                height: 450
-            };
-            
-            Plotly.newPlot("clg-chart-box", [{ 
-                y: res.scores?.performance || [], 
-                type: "box",
-                name: "College Performance",
-                marker: { color: '#FF9800' },
-                boxpoints: 'outliers',
-                jitter: 0.3,
-                pointpos: -1.8,
-                hovertemplate: '<b>College Performance</b><br>Value: %{y:.1f}%<extra></extra>'
-            }], boxLayout, window.defaultChartConfig);
+            // Box plot logic handled in renderCollegeCharts now
         }
-        
+
         const summaryEl = document.getElementById("clg-summary");
         if (summaryEl) {
             summaryEl.innerHTML = `
@@ -1503,205 +1736,110 @@ async function analyseCollege() {
     }
 }
 
-async function analyseBatch() {
-    const batchYear = document.getElementById("batch-year").value;
-    
-    showLoading("Analysing batch...");
-    
-    try {
-        const res = await api("/api/batch-analytics", "POST", { batch_year: batchYear });
-        hideLoading();
-        
-        if (!res || !res.success) {
-            alert(res?.message || "Batch analysis failed. Please try again.");
-            return;
-        }
-        
-        const reportDiv = document.getElementById("batch-analytics-report");
-        if (reportDiv) reportDiv.classList.remove("hidden");
-        
-        renderBatchKPIs(res);
-        renderBatchCharts(res);
-        renderBatchSummary(res);
-        
-    } catch (error) {
-        hideLoading();
-        console.error("Batch analysis error:", error);
-        alert("Batch analysis failed due to network error. Please try again.");
-    }
-}
+function renderCollegeCharts(aggData, localData) {
+    const students = localData.table || [];
 
-function renderBatchKPIs(res) {
-    const kpis = res.kpis;
-    const elements = {
-        "batch-kpi-total": `<i class="fa-solid fa-users" style="font-size: 16px; margin-bottom: 4px;"></i><br>Total Students<br><b>${kpis.total_students}</b>`,
-        "batch-kpi-avg-perf": `<i class="fa-solid fa-chart-line" style="font-size: 16px; margin-bottom: 4px;"></i><br>Avg Performance<br><b>${kpis.avg_performance}%</b>`,
-        "batch-kpi-high-risk": `<i class="fa-solid fa-triangle-exclamation" style="font-size: 16px; margin-bottom: 4px;"></i><br>High Risk<br><b>${kpis.high_risk_pct}%</b>`,
-        "batch-kpi-dropout-avg": `<i class="fa-solid fa-user-xmark" style="font-size: 16px; margin-bottom: 4px;"></i><br>Dropout Risk<br><b>${kpis.dropout_avg}%</b>`,
-        "batch-kpi-top-performers": `<i class="fa-solid fa-trophy" style="font-size: 16px; margin-bottom: 4px;"></i><br>Top Performers<br><b>${kpis.top_performers_pct}%</b>`
-    };
-    
-    Object.entries(elements).forEach(([id, html]) => {
-        const el = document.getElementById(id);
-        if (el) el.innerHTML = html;
-    });
-    
-    const deepAnalytics = res.deep_analytics;
-    const deepElements = {
-        "batch-declining-perf": `<i class="fa-solid fa-arrow-trend-down" style="font-size: 16px; margin-bottom: 4px;"></i><br>Declining Performance<br><b>${deepAnalytics.declining_pct}%</b>`,
-        "batch-attendance-risk": `<i class="fa-solid fa-calendar-xmark" style="font-size: 16px; margin-bottom: 4px;"></i><br>Low Attendance + High Risk<br><b>${deepAnalytics.attendance_risk_correlation}</b>`,
-        "batch-silent-risk": `<i class="fa-solid fa-eye-slash" style="font-size: 16px; margin-bottom: 4px;"></i><br>Silent Risk Students<br><b>${deepAnalytics.silent_risk}</b>`
-    };
-    
-    Object.entries(deepElements).forEach(([id, html]) => {
-        const el = document.getElementById(id);
-        if (el) el.innerHTML = html;
-    });
-}
+    // 1. Sankey Diagram: Dept -> Risk -> Dropout
+    if (document.getElementById("clg-chart-perf-donut")) {
+        // Prepare data for Sankey
+        const depts = [...new Set(students.map(s => s.DEPT))];
+        const risks = ['Low Risk', 'Normal Risk', 'High Risk'];
 
-function renderBatchCharts(res) {
-    const batchYear = res.batch_year;
-    
-    // Performance Distribution with drill-down
-    if (document.getElementById("batch-chart-performance")) {
-        const perfData = res.distributions.performance;
-        const layout = {
-            ...window.defaultLayout,
-            title: { text: "Performance Distribution", font: { size: 16, color: '#1976d2' } },
-            height: 350
-        };
-        
-        const plot = Plotly.newPlot("batch-chart-performance", [{
-            x: Object.keys(perfData),
-            y: Object.values(perfData),
-            type: "bar",
-            marker: { color: ['#4CAF50', '#FF9800', '#F44336'] },
-            hovertemplate: '<b>%{x}</b><br>Count: %{y}<br>Click to view students<extra></extra>'
-        }], layout, window.defaultChartConfig);
-        
-        document.getElementById("batch-chart-performance").on('plotly_click', function(data) {
-            const clickedValue = data.points[0].x.toLowerCase();
-            showStudentDrilldown('performance_label', clickedValue, 'batch', batchYear);
+        // Nodes: Depts + Risks
+        const labelList = [...depts, ...risks];
+        const linkSource = [];
+        const linkTarget = [];
+        const linkValue = [];
+        const linkColor = [];
+
+        depts.forEach((dept, deptIdx) => {
+            risks.forEach((risk, riskIdx) => {
+                const count = students.filter(s => s.DEPT === dept && s.risk_label.toLowerCase().includes(risk.split(' ')[0].toLowerCase())).length;
+                if (count > 0) {
+                    linkSource.push(deptIdx);
+                    linkTarget.push(depts.length + riskIdx);
+                    linkValue.push(count);
+                    linkColor.push(risk.includes('High') ? 'rgba(244, 67, 54, 0.4)' : 'rgba(76, 175, 80, 0.4)');
+                }
+            });
         });
-    }
-    
-    // Risk Distribution with drill-down
-    if (document.getElementById("batch-chart-risk")) {
-        const riskData = res.distributions.risk;
+
         const layout = {
             ...window.defaultLayout,
-            title: { text: "Risk Level Breakdown", font: { size: 16, color: '#1976d2' } },
-            height: 350
+            title: { text: "Student Flow: Dept → Risk Level", font: { size: 16, color: '#1976d2' } },
+            font: { size: 10 }
         };
-        
-        Plotly.newPlot("batch-chart-risk", [{
-            labels: Object.keys(riskData),
-            values: Object.values(riskData),
-            type: "pie",
-            hole: 0.4,
-            marker: { colors: ['#4CAF50', '#FF9800', '#F44336'] },
-            hovertemplate: '<b>%{label}</b><br>Count: %{value}<br>Percentage: %{percent}<br>Click to view students<extra></extra>'
+
+        Plotly.newPlot("clg-chart-perf-donut", [{
+            type: "sankey",
+            orientation: "h",
+            node: {
+                pad: 15, thickness: 20, line: { color: "black", width: 0.5 },
+                label: labelList, color: "#90CAF9"
+            },
+            link: {
+                source: linkSource, target: linkTarget, value: linkValue, color: linkColor
+            }
         }], layout, window.defaultChartConfig);
-        
-        document.getElementById("batch-chart-risk").on('plotly_click', function(data) {
-            const clickedValue = data.points[0].label.toLowerCase();
-            showStudentDrilldown('risk_label', clickedValue, 'batch', batchYear);
-        });
     }
-    
-    // Dropout Distribution with drill-down
-    if (document.getElementById("batch-chart-dropout")) {
-        const dropoutData = res.distributions.dropout;
+
+    // 2. Bubble Chart: Dept Size vs Performance vs Risk
+    if (document.getElementById("clg-chart-risk-donut")) {
+        const depts = Object.keys(aggData.dept_performance || {});
+        const sizes = depts.map(d => aggData.risk_distribution?.[d]?.low + aggData.risk_distribution?.[d]?.normal + aggData.risk_distribution?.[d]?.high || 10);
+        const perfs = depts.map(d => aggData.dept_performance?.[d] || 0);
+        const risks = depts.map(d => aggData.dept_dropout_pct?.[d] || 0);
+
         const layout = {
             ...window.defaultLayout,
-            title: { text: "Dropout Probability Distribution", font: { size: 16, color: '#1976d2' } },
-            height: 350
+            title: { text: "Dept Health (Size vs Perf vs Dropout)", font: { size: 16, color: '#1976d2' } },
+            xaxis: { title: "Avg Performance (%)" },
+            yaxis: { title: "Dropout Risk (%)" }
         };
-        
-        Plotly.newPlot("batch-chart-dropout", [{
-            x: Object.keys(dropoutData),
-            y: Object.values(dropoutData),
-            type: "bar",
-            marker: { color: ['#4CAF50', '#FF9800', '#F44336'] },
-            hovertemplate: '<b>%{x}</b><br>Count: %{y}<br>Click to view students<extra></extra>'
+
+        Plotly.newPlot("clg-chart-risk-donut", [{
+            x: perfs, y: risks,
+            mode: 'markers',
+            marker: {
+                size: sizes, sizemode: 'area', sizeref: 2,
+                color: perfs, colorscale: 'Viridis', showscale: true
+            },
+            text: depts,
+            hovertemplate: '<b>%{text}</b><br>Perf: %{x}%<br>Dropout: %{y}%<br>Size: %{marker.size}<extra></extra>'
         }], layout, window.defaultChartConfig);
-        
-        document.getElementById("batch-chart-dropout").on('plotly_click', function(data) {
-            const clickedValue = data.points[0].x.toLowerCase();
-            showStudentDrilldown('dropout_label', clickedValue, 'batch', batchYear);
-        });
     }
-    
-    // Semester Trend
-    if (document.getElementById("batch-chart-trend")) {
+
+    // 3. Parallel Categories
+    if (document.getElementById("clg-chart-box")) {
+        // Replacing the Box plot with ParCats
+        // Need to enable ParCats in Plotly or use simple ParCoords
+        // Let's use ParCats for Dept -> Year -> Perf Label
+
+        const dims = [
+            { label: 'Dept', values: students.map(s => s.DEPT) },
+            { label: 'Year', values: students.map(s => `Year ${s.YEAR}`) },
+            { label: 'Risk', values: students.map(s => s.risk_label) }
+        ];
+
         const layout = {
             ...window.defaultLayout,
-            title: { text: "Semester Performance Trend", font: { size: 16, color: '#1976d2' } },
-            height: 350,
-            xaxis: { title: 'Semesters' },
-            yaxis: { title: 'Average Marks' }
+            title: { text: "Multi-dimensional Analysis", font: { size: 16, color: '#1976d2' } }
         };
-        
-        Plotly.newPlot("batch-chart-trend", [{
-            x: res.trends.semesters,
-            y: res.trends.marks,
-            type: "scatter",
-            mode: "lines+markers",
-            line: { width: 4, color: '#1976d2' },
-            marker: { size: 8, color: '#1976d2' },
-            hovertemplate: '<b>%{x}</b><br>Average: %{y:.1f}%<extra></extra>'
+
+        Plotly.newPlot("clg-chart-box", [{
+            type: 'parcats',
+            dimensions: dims,
+            line: { color: 'blue' } // simplified coloring
         }], layout, window.defaultChartConfig);
     }
 }
 
-function renderBatchSummary(res) {
-    const summaryEl = document.getElementById("batch-summary");
-    const suggestionsEl = document.getElementById("batch-suggestions");
-    
-    if (!summaryEl || !suggestionsEl) return;
-    
-    const kpis = res.kpis;
-    const deep = res.deep_analytics;
-    
-    summaryEl.innerHTML = `
-        <p><strong>Batch ${res.batch_year}</strong> has <strong>${kpis.total_students}</strong> students with an average performance of <strong>${kpis.avg_performance}%</strong>.</p>
-        <p><strong>${kpis.high_risk_pct}%</strong> are high-risk students, with an average dropout probability of <strong>${kpis.dropout_avg}%</strong>.</p>
-        <p><strong>${deep.declining_pct}%</strong> show declining performance trends, and <strong>${deep.silent_risk}</strong> students are "silent risk" (medium performance but high dropout risk).</p>
-        <p><strong>${deep.attendance_risk_correlation}</strong> students have both low attendance and high risk indicators.</p>
-    `;
-    
-    suggestionsEl.innerHTML = "";
-    
-    function addSuggestion(text) {
-        const li = document.createElement("li");
-        li.innerHTML = `<i class="fa-solid fa-arrow-right" style="color: #1976d2; margin-right: 8px;"></i>${text}`;
-        suggestionsEl.appendChild(li);
-    }
-    
-    if (kpis.high_risk_pct > 20) {
-        addSuggestion(`<strong>URGENT:</strong> Conduct batch-wide intervention for ${res.batch_year} - ${kpis.high_risk_pct}% high-risk rate is critical.`);
-    }
-    
-    if (deep.declining_pct > 15) {
-        addSuggestion(`Address declining performance trend affecting ${deep.declining_pct}% of batch ${res.batch_year}.`);
-    }
-    
-    if (deep.silent_risk > 5) {
-        addSuggestion(`Monitor ${deep.silent_risk} "silent risk" students who appear stable but have high dropout probability.`);
-    }
-    
-    if (deep.attendance_risk_correlation > 10) {
-        addSuggestion(`Implement attendance improvement program - ${deep.attendance_risk_correlation} students show attendance-risk correlation.`);
-    }
-    
-    addSuggestion(`Assign dedicated mentors to top ${Math.min(10, Math.ceil(kpis.total_students * 0.1))} high-risk students in batch ${res.batch_year}.`);
-    addSuggestion(`Celebrate and leverage ${kpis.top_performers_pct}% top performers as peer mentors.`);
-    addSuggestion(`Schedule monthly batch review meetings to track intervention effectiveness.`);
-}
+
+
 
 async function showStudentDrilldown(filterType, filterValue, scope, scopeValue) {
     showLoading("Loading student details...");
-    
+
     try {
         const res = await api("/api/analytics/drilldown", "POST", {
             filter_type: filterType,
@@ -1709,9 +1847,9 @@ async function showStudentDrilldown(filterType, filterValue, scope, scopeValue) 
             scope: scope,
             scope_value: scopeValue
         });
-        
+
         hideLoading();
-        
+
         if (res.success) {
             displayStudentModal(res);
         } else {
@@ -1728,13 +1866,13 @@ function displayStudentModal(res) {
     const modal = document.getElementById("student-modal");
     const title = document.getElementById("modal-title");
     const tbody = document.querySelector("#modal-student-table tbody");
-    
+
     if (!modal || !title || !tbody) return;
-    
+
     title.textContent = `${res.filter_info.value.toUpperCase()} ${res.filter_info.type.replace('_', ' ').toUpperCase()} Students (${res.count})`;
-    
+
     tbody.innerHTML = "";
-    
+
     res.students.forEach(student => {
         const tr = document.createElement("tr");
         tr.innerHTML = `
@@ -1749,7 +1887,7 @@ function displayStudentModal(res) {
         `;
         tbody.appendChild(tr);
     });
-    
+
     modal.classList.remove("hidden");
 }
 
@@ -1760,22 +1898,22 @@ function closeStudentModal() {
 
 async function viewStudentFromModal(rno) {
     closeStudentModal();
-    
+
     try {
         const result = await api("/api/student/search", "POST", { rno });
         if (result.success) {
             currentStudent = result.student;
             await analyseStudent(currentStudent);
-            
+
             document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
             const studentBtn = document.querySelector('[data-mode="student"]');
             if (studentBtn) studentBtn.classList.add('active');
-            
+
             document.querySelectorAll('.mode-section').forEach(sec => {
                 sec.classList.remove('active');
                 sec.classList.add('hidden');
             });
-            
+
             const studentMode = document.getElementById('mode-student');
             if (studentMode) {
                 studentMode.classList.remove('hidden');
@@ -1787,9 +1925,17 @@ async function viewStudentFromModal(rno) {
     }
 }
 
-function exportDeptCSV() { alert("Department CSV export functionality - implement backend endpoint"); }
-function exportYearCSV() { alert("Year CSV export functionality - implement backend endpoint"); }
-function exportCollegeCSV() { alert("College CSV export functionality - implement backend endpoint"); }
+function exportDeptCSV() {
+    exportTableToCSV("dept-table", "Department_Analytics_Report.csv");
+}
+
+function exportYearCSV() {
+    exportTableToCSV("year-table", "Year_Analytics_Report.csv");
+}
+
+function exportCollegeCSV() {
+    exportTableToCSV("clg-table", "College_Analytics_Report.csv");
+}
 
 /* ===========================================================
    BATCH UPLOAD FUNCTIONS
@@ -1799,17 +1945,17 @@ let selectedFileNormalize = null;
 
 function switchBatchMode(mode) {
     currentBatchMode = mode;
-    
+
     const btnNormalize = document.getElementById('btn-normalize');
     const btnAnalytics = document.getElementById('btn-analytics');
     const normalizeContent = document.getElementById('normalize-content');
     const analyticsContent = document.getElementById('analytics-content');
-    
+
     if (btnNormalize) btnNormalize.classList.toggle('active', mode === 'normalize');
     if (btnAnalytics) btnAnalytics.classList.toggle('active', mode === 'analytics');
     if (normalizeContent) normalizeContent.classList.toggle('hidden', mode !== 'normalize');
     if (analyticsContent) analyticsContent.classList.toggle('hidden', mode !== 'analytics');
-    
+
     resetBatchUpload();
 }
 
@@ -1820,7 +1966,7 @@ function resetBatchUpload() {
     const statusDiv = document.getElementById('upload-status-normalize');
     const resultDiv = document.getElementById('batch-result');
     const previewDiv = document.getElementById('analytics-preview');
-    
+
     if (fileInput) fileInput.value = '';
     if (uploadBtn) uploadBtn.disabled = true;
     if (statusDiv) statusDiv.classList.add('hidden');
@@ -1831,22 +1977,22 @@ function resetBatchUpload() {
 function setupNormalizeUpload() {
     const uploadArea = document.getElementById('upload-area-normalize');
     const fileInput = document.getElementById('batch-file-normalize');
-    
+
     if (!uploadArea || !fileInput) return;
-    
-    uploadArea.addEventListener("dragover", (e) => { 
-        e.preventDefault(); 
-        uploadArea.classList.add("dragover"); 
+
+    uploadArea.addEventListener("dragover", (e) => {
+        e.preventDefault();
+        uploadArea.classList.add("dragover");
     });
-    
+
     uploadArea.addEventListener("dragleave", () => uploadArea.classList.remove("dragover"));
-    
+
     uploadArea.addEventListener("drop", (e) => {
-        e.preventDefault(); 
+        e.preventDefault();
         uploadArea.classList.remove("dragover");
         if (e.dataTransfer.files.length > 0) handleNormalizeFileSelection(e.dataTransfer.files[0]);
     });
-    
+
     fileInput.addEventListener("change", (e) => {
         if (e.target.files.length > 0) handleNormalizeFileSelection(e.target.files[0]);
     });
@@ -1856,106 +2002,106 @@ function handleNormalizeFileSelection(file) {
     const statusDiv = document.getElementById('upload-status-normalize');
     const statusText = document.getElementById('status-text-normalize');
     const uploadBtn = document.getElementById('upload-btn-normalize');
-    
+
     if (!statusDiv || !statusText || !uploadBtn) return;
-    
+
     if (!file.name.endsWith(".csv") && !file.name.endsWith(".xlsx")) {
         statusDiv.classList.remove("hidden");
         statusText.textContent = "Invalid file type. Please select CSV or XLSX file.";
-        statusDiv.style.background = "#ffebee"; 
+        statusDiv.style.background = "#ffebee";
         statusDiv.style.color = "#c62828";
-        uploadBtn.disabled = true; 
+        uploadBtn.disabled = true;
         return;
     }
-    
+
     selectedFileNormalize = file;
     statusDiv.classList.remove("hidden");
     statusText.textContent = `File selected: ${file.name} (${(file.size / 1024).toFixed(1)} KB)`;
-    statusDiv.style.background = "#e3f2fd"; 
+    statusDiv.style.background = "#e3f2fd";
     statusDiv.style.color = "#0d47a1";
     uploadBtn.disabled = false;
 }
 
 async function uploadBatchFile(mode) {
-    if (!selectedFileNormalize) { 
-        alert("Please select a file first."); 
-        return; 
+    if (!selectedFileNormalize) {
+        alert("Please select a file first.");
+        return;
     }
-    
+
     const formData = new FormData();
     formData.append("file", selectedFileNormalize);
     formData.append("mode", mode);
-    
+
     showLoading("Normalizing data and generating predictions...");
-    
+
     try {
         const response = await fetch("/api/batch-upload", { method: "POST", body: formData });
         const result = await response.json();
         hideLoading();
-        
+
         if (result.success) {
             const resultDiv = document.getElementById("batch-result");
             if (resultDiv) resultDiv.classList.remove("hidden");
-            
+
             const elements = {
                 "batch-processed-count": mode === 'normalize' ? `<i class="fa-solid fa-chart-bar"></i> Added<br><b>${result.added || 0}</b>` : `<i class="fa-solid fa-chart-bar"></i> Processed<br><b>${result.processed_rows || 0}</b>`,
                 "batch-total-count": mode === 'normalize' ? `<i class="fa-solid fa-users"></i> Total Records<br><b>${result.total_records || 0}</b>` : `<i class="fa-solid fa-users"></i> Total Students<br><b>${result.total_students || 0}</b>`,
                 "batch-alerts-sent": mode === 'normalize' ? `<i class="fa-solid fa-envelope"></i> Updated<br><b>${result.updated || 0}</b>` : `<i class="fa-solid fa-check-circle"></i> Success<br><b>Complete</b>`
             };
-            
+
             Object.entries(elements).forEach(([id, html]) => {
                 const el = document.getElementById(id);
                 if (el) el.innerHTML = html;
             });
-            
+
             const messageEl = document.getElementById("batch-message-text");
             if (messageEl) messageEl.textContent = result.message;
-            
+
             if (mode === 'normalize') {
                 alert(`SUCCESS: Normalization Complete! Added ${result.added || 0} new students, updated ${result.updated || 0} existing students.`);
             } else {
                 alert(`SUCCESS: Analytics Processing Complete! Processed ${result.processed_rows || 0} records.`);
             }
-            
-            await loadInitialStats(); 
+
+            await loadInitialStats();
             resetBatchUpload();
         } else {
             alert(`ERROR: Upload failed: ${result.message}`);
         }
     } catch (error) {
-        hideLoading(); 
+        hideLoading();
         console.error("Upload error:", error);
         alert("ERROR: Upload failed due to network error.");
     }
 }
 
-function showAnalyticsAfterNormalize() { 
-    switchBatchMode('analytics'); 
-    loadAnalyticsDashboard(); 
+function showAnalyticsAfterNormalize() {
+    switchBatchMode('analytics');
+    loadAnalyticsDashboard();
 }
 
 async function loadAnalyticsDashboard() {
     showLoading("Loading analytics dashboard...");
-    
+
     try {
         const result = await api("/api/analytics/preview", "GET");
         hideLoading();
-        
+
         if (result.success) {
             const previewDiv = document.getElementById('analytics-preview');
             if (previewDiv) previewDiv.classList.remove('hidden');
-            
+
             const elements = {
                 'analytics-total-students': `<i class="fa-solid fa-users"></i> Total Students<br><b>${result.stats.total_students}</b>`,
                 'analytics-high-risk': `<i class="fa-solid fa-triangle-exclamation"></i> High Risk<br><b>${result.stats.high_risk}</b>`,
                 'analytics-high-dropout': `<i class="fa-solid fa-user-xmark"></i> High Dropout<br><b>${result.stats.high_dropout}</b>`
             };
-            
+
             Object.entries(elements).forEach(([id, html]) => {
                 const el = document.getElementById(id);
                 if (el) el.innerHTML = html;
             });
-            
+
             const tbody = document.querySelector('#analytics-table tbody');
             if (tbody) {
                 tbody.innerHTML = '';
@@ -1976,7 +2122,7 @@ async function loadAnalyticsDashboard() {
             alert(result.message || "No analytics data available");
         }
     } catch (error) {
-        hideLoading(); 
+        hideLoading();
         console.error("Analytics dashboard error:", error);
         alert("Failed to load analytics dashboard.");
     }
@@ -1988,25 +2134,25 @@ async function viewStudentAnalytics(rno) {
         if (result.success) {
             currentStudent = result.student;
             await analyseStudent(currentStudent);
-            
+
             // Switch to student mode
             document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
             const studentBtn = document.querySelector('[data-mode="student"]');
             if (studentBtn) studentBtn.classList.add('active');
-            
+
             document.querySelectorAll('.mode-section').forEach(sec => {
-                sec.classList.remove('active'); 
+                sec.classList.remove('active');
                 sec.classList.add('hidden');
             });
-            
+
             const studentMode = document.getElementById('mode-student');
             if (studentMode) {
                 studentMode.classList.remove('hidden');
                 studentMode.classList.add('active');
             }
         }
-    } catch (error) { 
-        alert("Failed to load student analytics."); 
+    } catch (error) {
+        alert("Failed to load student analytics.");
     }
 }
 
@@ -2018,7 +2164,7 @@ let currentStudentForUpdate = null;
 
 function switchCrudMode(mode) {
     currentCrudMode = mode;
-    
+
     // Update button states
     const buttons = ['create', 'read', 'update', 'delete'];
     buttons.forEach(btn => {
@@ -2027,7 +2173,7 @@ function switchCrudMode(mode) {
             element.classList.toggle('active', btn === mode);
         }
     });
-    
+
     // Show/hide content sections
     buttons.forEach(btn => {
         const content = document.getElementById(`crud-${btn}`);
@@ -2035,11 +2181,11 @@ function switchCrudMode(mode) {
             content.classList.toggle('hidden', btn !== mode);
         }
     });
-    
+
     // Hide results
     const resultsDiv = document.getElementById('crud-results');
     if (resultsDiv) resultsDiv.classList.add('hidden');
-    
+
     // Reset forms
     resetCrudForms();
 }
@@ -2054,26 +2200,26 @@ function resetCrudForms() {
             input.value = '';
         }
     });
-    
+
     // Reset read form
     const readInputs = document.querySelectorAll('#crud-read input');
     readInputs.forEach(input => input.value = '');
-    
+
     // Reset update form
     const updateInputs = document.querySelectorAll('#crud-update input, #crud-update select');
     updateInputs.forEach(input => input.value = '');
-    
+
     // Reset delete form
     const deleteInputs = document.querySelectorAll('#crud-delete input');
     deleteInputs.forEach(input => input.value = '');
-    
+
     // Hide dynamic sections
     const dynamicSections = ['read-results', 'update-form', 'delete-preview'];
     dynamicSections.forEach(id => {
         const element = document.getElementById(id);
         if (element) element.classList.add('hidden');
     });
-    
+
     currentStudentForUpdate = null;
 }
 
@@ -2087,7 +2233,7 @@ async function createStudent() {
         'create-year': 'Year',
         'create-sem': 'Current Semester'
     };
-    
+
     // Validate required fields
     for (const [fieldId, fieldName] of Object.entries(requiredFields)) {
         const element = document.getElementById(fieldId);
@@ -2097,7 +2243,7 @@ async function createStudent() {
             return;
         }
     }
-    
+
     // Collect semester marks
     const semesterMarks = {};
     for (let i = 1; i <= 8; i++) {
@@ -2106,7 +2252,7 @@ async function createStudent() {
             semesterMarks[`SEM${i}`] = parseFloat(semInput.value);
         }
     }
-    
+
     const studentData = {
         NAME: document.getElementById('create-name').value.trim(),
         RNO: document.getElementById('create-rno').value.trim(),
@@ -2123,13 +2269,13 @@ async function createStudent() {
         BEHAVIOR_SCORE_10: parseFloat(document.getElementById('create-behavior').value || 7),
         ...semesterMarks
     };
-    
+
     showLoading('Creating student...');
-    
+
     try {
         const result = await api('/api/student/create', 'POST', studentData);
         hideLoading();
-        
+
         if (result.success) {
             showCrudResults('Student Created Successfully', `
                 <div style="background: #e8f5e8; padding: 15px; border-radius: 8px; margin-bottom: 15px;">
@@ -2161,26 +2307,26 @@ async function createStudent() {
 async function readStudent() {
     const rno = document.getElementById('read-rno').value.trim();
     const name = document.getElementById('read-name').value.trim();
-    
+
     if (!rno && !name) {
         alert('Please enter either Register Number or Name to search');
         return;
     }
-    
+
     showLoading('Searching students...');
-    
+
     try {
         const result = await api('/api/student/read', 'POST', { rno, name });
         hideLoading();
-        
+
         if (result.success) {
             const resultsDiv = document.getElementById('read-results');
             if (resultsDiv) resultsDiv.classList.remove('hidden');
-            
+
             const tbody = document.querySelector('#read-table tbody');
             if (tbody) {
                 tbody.innerHTML = '';
-                
+
                 result.students.forEach(student => {
                     const tr = document.createElement('tr');
                     tr.innerHTML = `
@@ -2204,7 +2350,7 @@ async function readStudent() {
                     tbody.appendChild(tr);
                 });
             }
-            
+
             showCrudResults(`Search Results (${result.count} found)`, `
                 <p style="color: #2e7d32;"><i class="fa-solid fa-check-circle"></i> Found ${result.count} student(s) matching your search criteria.</p>
             `);
@@ -2223,23 +2369,23 @@ async function readStudent() {
 // UPDATE STUDENT
 async function fetchStudentForUpdate() {
     const rno = document.getElementById('update-search-rno').value.trim();
-    
+
     if (!rno) {
         alert('Please enter Register Number');
         return;
     }
-    
+
     showLoading('Fetching student details...');
-    
+
     try {
         const result = await api('/api/student/search', 'POST', { rno });
         hideLoading();
-        
+
         if (result.success) {
             currentStudentForUpdate = result.student;
             const updateForm = document.getElementById('update-form');
             if (updateForm) updateForm.classList.remove('hidden');
-            
+
             // Populate form with current data
             const fields = {
                 'update-name': result.student.NAME,
@@ -2249,12 +2395,12 @@ async function fetchStudentForUpdate() {
                 'update-sem': result.student.CURR_SEM,
                 'update-internal': result.student.INTERNAL_MARKS || 20
             };
-            
+
             Object.entries(fields).forEach(([fieldId, value]) => {
                 const element = document.getElementById(fieldId);
                 if (element) element.value = value || '';
             });
-            
+
             // Populate semester marks
             for (let i = 1; i <= 8; i++) {
                 const semInput = document.getElementById(`update-sem${i}`);
@@ -2277,7 +2423,7 @@ async function updateStudent() {
         alert('Please fetch student details first');
         return;
     }
-    
+
     // Collect semester marks
     const semesterMarks = {};
     for (let i = 1; i <= 8; i++) {
@@ -2286,7 +2432,7 @@ async function updateStudent() {
             semesterMarks[`SEM${i}`] = parseFloat(semInput.value);
         }
     }
-    
+
     const updateData = {
         RNO: currentStudentForUpdate.RNO,
         NAME: document.getElementById('update-name').value.trim(),
@@ -2297,13 +2443,13 @@ async function updateStudent() {
         INTERNAL_MARKS: parseFloat(document.getElementById('update-internal').value || 20),
         ...semesterMarks
     };
-    
+
     showLoading('Updating student...');
-    
+
     try {
         const result = await api('/api/student/update', 'POST', updateData);
         hideLoading();
-        
+
         if (result.success) {
             showCrudResults('Student Updated Successfully', `
                 <div style="background: #e8f5e8; padding: 15px; border-radius: 8px; margin-bottom: 15px;">
@@ -2336,22 +2482,22 @@ function cancelUpdate() {
 // DELETE STUDENT
 async function fetchStudentForDelete() {
     const rno = document.getElementById('delete-search-rno').value.trim();
-    
+
     if (!rno) {
         alert('Please enter Register Number');
         return;
     }
-    
+
     showLoading('Fetching student details...');
-    
+
     try {
         const result = await api('/api/student/search', 'POST', { rno });
         hideLoading();
-        
+
         if (result.success) {
             const previewDiv = document.getElementById('delete-preview');
             const infoDiv = document.getElementById('delete-student-info');
-            
+
             if (previewDiv && infoDiv) {
                 previewDiv.classList.remove('hidden');
                 infoDiv.innerHTML = `
@@ -2375,22 +2521,22 @@ async function fetchStudentForDelete() {
 
 async function confirmDeleteStudent() {
     const rno = document.getElementById('delete-search-rno').value.trim();
-    
+
     if (!rno) {
         alert('No student selected for deletion');
         return;
     }
-    
+
     if (!confirm('Are you sure you want to delete this student? This action cannot be undone.')) {
         return;
     }
-    
+
     showLoading('Deleting student...');
-    
+
     try {
         const result = await api('/api/student/delete', 'POST', { rno });
         hideLoading();
-        
+
         if (result.success) {
             showCrudResults('Student Deleted Successfully', `
                 <div style="background: #ffebee; padding: 15px; border-radius: 8px; margin-bottom: 15px; border-left: 4px solid #f44336;">
@@ -2425,12 +2571,12 @@ function showCrudResults(title, content) {
     const resultsDiv = document.getElementById('crud-results');
     const titleEl = document.getElementById('crud-results-title');
     const contentEl = document.getElementById('crud-results-content');
-    
+
     if (resultsDiv && titleEl && contentEl) {
         resultsDiv.classList.remove('hidden');
         titleEl.textContent = title;
         contentEl.innerHTML = content;
-        
+
         // Scroll to results
         resultsDiv.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
@@ -2461,41 +2607,41 @@ async function analyseBatch() {
         console.error('Batch year select not found');
         return;
     }
-    
+
     const batchYear = batchSelect.value;
     if (!batchYear) {
         alert('Please select a batch year');
         return;
     }
-    
+
     currentBatchYear = batchYear;
     showLoading('Analyzing batch...');
-    
+
     try {
         const result = await api('/api/batch/analyze', 'POST', { batch_year: batchYear });
         hideLoading();
-        
+
         if (!result || !result.success) {
             alert(result?.message || 'Batch analysis failed');
             return;
         }
-        
+
         currentBatchData = result;
         const reportDiv = document.getElementById('batch-report');
         if (reportDiv) {
             reportDiv.classList.remove('hidden');
             console.log('Batch report shown');
         }
-        
+
         renderBatchKPIs(result);
         renderBatchCharts(result);
         renderBatchSummary(result);
-        
+
         // Add drill-down handlers for batch charts
         setTimeout(() => {
             addBatchDrilldownHandlers(currentBatchYear);
         }, 1000);
-        
+
     } catch (error) {
         hideLoading();
         console.error('Batch analysis error:', error);
@@ -2512,7 +2658,7 @@ function renderBatchKPIs(data) {
         'batch-kpi-avg-dropout': `<i class="fa-solid fa-user-xmark"></i> Avg Dropout Risk<br><b>${stats.avg_dropout}%</b>`,
         'batch-kpi-top-performers': `<i class="fa-solid fa-trophy"></i> Top Performers<br><b>${stats.top_performers_pct}%</b>`
     };
-    
+
     Object.entries(elements).forEach(([id, html]) => {
         const el = document.getElementById(id);
         if (el) el.innerHTML = html;
@@ -2529,7 +2675,7 @@ function renderBatchCharts(data) {
             xaxis: { title: 'Performance Level' },
             yaxis: { title: 'Number of Students' }
         };
-        
+
         const trace = {
             x: Object.keys(perfData),
             y: Object.values(perfData),
@@ -2537,18 +2683,18 @@ function renderBatchCharts(data) {
             marker: { color: ['#4CAF50', '#FF9800', '#F44336'] },
             hovertemplate: '<b>%{x}</b><br>Students: %{y}<extra></extra>'
         };
-        
+
         Plotly.newPlot('batch-chart-performance', [trace], layout, window.defaultChartConfig);
-        
+
         // Add click event
-        document.getElementById('batch-chart-performance').on('plotly_click', function(eventData) {
+        document.getElementById('batch-chart-performance').on('plotly_click', function (eventData) {
             if (eventData.points.length > 0) {
                 const point = eventData.points[0];
                 performDrilldown('performance_label', point.x, 'batch', currentBatchYear);
             }
         });
     }
-    
+
     // Risk Level Breakdown
     if (document.getElementById('batch-chart-risk')) {
         const riskData = data.distributions.risk;
@@ -2556,7 +2702,7 @@ function renderBatchCharts(data) {
             ...window.defaultLayout,
             title: { text: 'Risk Level Breakdown', font: { size: 18, color: '#1976d2' }, x: 0.5 }
         };
-        
+
         const trace = {
             labels: Object.keys(riskData),
             values: Object.values(riskData),
@@ -2565,18 +2711,18 @@ function renderBatchCharts(data) {
             marker: { colors: ['#4CAF50', '#FF9800', '#F44336'] },
             hovertemplate: '<b>%{label}</b><br>Students: %{value}<br>%{percent}<extra></extra>'
         };
-        
+
         Plotly.newPlot('batch-chart-risk', [trace], layout, window.defaultChartConfig);
-        
+
         // Add click event
-        document.getElementById('batch-chart-risk').on('plotly_click', function(eventData) {
+        document.getElementById('batch-chart-risk').on('plotly_click', function (eventData) {
             if (eventData.points.length > 0) {
                 const point = eventData.points[0];
                 performDrilldown('risk_label', point.label, 'batch', currentBatchYear);
             }
         });
     }
-    
+
     // Dropout Distribution
     if (document.getElementById('batch-chart-dropout')) {
         const dropoutData = data.distributions.dropout;
@@ -2584,7 +2730,7 @@ function renderBatchCharts(data) {
             ...window.defaultLayout,
             title: { text: 'Dropout Probability Distribution', font: { size: 18, color: '#1976d2' }, x: 0.5 }
         };
-        
+
         const trace = {
             labels: Object.keys(dropoutData),
             values: Object.values(dropoutData),
@@ -2592,32 +2738,32 @@ function renderBatchCharts(data) {
             marker: { colors: ['#4CAF50', '#FF9800', '#F44336'] },
             hovertemplate: '<b>%{label}</b><br>Students: %{value}<br>%{percent}<extra></extra>'
         };
-        
+
         Plotly.newPlot('batch-chart-dropout', [trace], layout, window.defaultChartConfig);
-        
+
         // Add click event
-        document.getElementById('batch-chart-dropout').on('plotly_click', function(eventData) {
+        document.getElementById('batch-chart-dropout').on('plotly_click', function (eventData) {
             if (eventData.points.length > 0) {
                 const point = eventData.points[0];
                 performDrilldown('dropout_label', point.label, 'batch', currentBatchYear);
             }
         });
     }
-    
+
     // Semester Trend Analysis
     if (document.getElementById('batch-chart-semester-trend')) {
         const semesterData = data.semester_trend;
         const semesters = semesterData.map((_, i) => `SEM${i + 1}`);
         const validData = semesterData.filter(val => val !== null && val > 0);
         const validSemesters = semesters.filter((_, i) => semesterData[i] !== null && semesterData[i] > 0);
-        
+
         const layout = {
             ...window.defaultLayout,
             title: { text: 'Semester Trend Analysis', font: { size: 18, color: '#1976d2' }, x: 0.5 },
             xaxis: { title: 'Semester' },
             yaxis: { title: 'Average Marks (%)' }
         };
-        
+
         const trace = {
             x: validSemesters,
             y: validData,
@@ -2627,7 +2773,7 @@ function renderBatchCharts(data) {
             marker: { size: 10, color: '#1976d2' },
             hovertemplate: '<b>%{x}</b><br>Average: %{y:.1f}%<extra></extra>'
         };
-        
+
         Plotly.newPlot('batch-chart-semester-trend', [trace], layout, window.defaultChartConfig);
     }
 }
@@ -2635,10 +2781,10 @@ function renderBatchCharts(data) {
 function renderBatchSummary(data) {
     const summaryEl = document.getElementById('batch-summary');
     if (!summaryEl) return;
-    
+
     const insights = data.insights;
     let html = `<p><strong>${insights.summary}</strong></p>`;
-    
+
     if (insights.insights && insights.insights.length > 0) {
         html += '<h4>Key Insights:</h4><ul>';
         insights.insights.forEach(insight => {
@@ -2646,7 +2792,7 @@ function renderBatchSummary(data) {
         });
         html += '</ul>';
     }
-    
+
     if (insights.recommendations && insights.recommendations.length > 0) {
         html += '<h4>Recommendations:</h4><ul>';
         insights.recommendations.forEach(rec => {
@@ -2654,7 +2800,7 @@ function renderBatchSummary(data) {
         });
         html += '</ul>';
     }
-    
+
     summaryEl.innerHTML = html;
 }
 
@@ -2665,15 +2811,15 @@ function populateDrilldownModal(modal, students, filterInfo) {
     const tbody = modal.querySelector('.drilldown-table tbody');
     const title = modal.querySelector('.drilldown-title');
     const count = modal.querySelector('.student-count');
-    
+
     // Set title and count
     const filterTypeDisplay = filterInfo.filter_type.replace('_label', '').replace('_', ' ').toUpperCase();
     title.textContent = `${filterInfo.filter_value.toUpperCase()} ${filterTypeDisplay} STUDENTS`;
     count.textContent = `${students.length} students`;
-    
+
     // Clear and populate table
     tbody.innerHTML = '';
-    
+
     if (students.length === 0) {
         tbody.innerHTML = `
             <tr>
@@ -2715,11 +2861,16 @@ function createDrilldownModal() {
                     <h3 class="drilldown-title">Student Details</h3>
                     <span class="student-count">0 students</span>
                 </div>
-                <button class="modal-close" onclick="closeDrilldownModal()">&times;</button>
+                <div style="display: flex; gap: 10px;">
+                    <button class="secondary-btn" onclick="exportDrilldownCSV()" style="padding: 5px 10px; font-size: 12px;">
+                        <i class="fa-solid fa-download"></i> Export
+                    </button>
+                    <button class="modal-close" onclick="closeDrilldownModal()">&times;</button>
+                </div>
             </div>
             <div class="modal-body">
                 <div class="drilldown-table-container">
-                    <table class="drilldown-table">
+                    <table class="drilldown-table" id="drilldown-table">
                         <thead>
                             <tr>
                                 <th>Register No</th>
@@ -2738,14 +2889,14 @@ function createDrilldownModal() {
             </div>
         </div>
     `;
-    
+
     // Add click outside to close
-    modal.addEventListener('click', function(e) {
+    modal.addEventListener('click', function (e) {
         if (e.target === modal) {
             closeDrilldownModal();
         }
     });
-    
+
     document.body.appendChild(modal);
     return modal;
 }
@@ -2760,32 +2911,32 @@ function closeDrilldownModal() {
 
 async function viewStudentFromDrilldown(rno) {
     closeDrilldownModal();
-    
+
     try {
         showLoading('Loading student analytics...');
         const result = await api('/api/student/search', 'POST', { rno });
         hideLoading();
-        
+
         if (result.success) {
             currentStudent = result.student;
             await analyseStudent(currentStudent);
-            
+
             // Switch to student mode
             document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
             const studentBtn = document.querySelector('[data-mode="student"]');
             if (studentBtn) studentBtn.classList.add('active');
-            
+
             document.querySelectorAll('.mode-section').forEach(sec => {
                 sec.classList.remove('active');
                 sec.classList.add('hidden');
             });
-            
+
             const studentMode = document.getElementById('mode-student');
             if (studentMode) {
                 studentMode.classList.remove('hidden');
                 studentMode.classList.add('active');
             }
-            
+
             // Scroll to top
             window.scrollTo({ top: 0, behavior: 'smooth' });
         } else {
@@ -2803,15 +2954,15 @@ function performDrilldown(filterType, filterValue, scope, scopeValue) {
     if (!modal) {
         modal = createDrilldownModal();
     }
-    
+
     const tbody = modal.querySelector('.drilldown-table tbody');
     const title = modal.querySelector('.drilldown-title');
     const count = modal.querySelector('.student-count');
-    
+
     // Reset modal state
     modal.classList.remove('show');
     modal.style.display = 'none';
-    
+
     // Set loading state
     title.textContent = 'LOADING STUDENT DETAILS';
     count.textContent = 'Please wait...';
@@ -2823,24 +2974,24 @@ function performDrilldown(filterType, filterValue, scope, scopeValue) {
             </td>
         </tr>
     `;
-    
+
     // Show modal
     modal.style.display = 'flex';
     modal.classList.add('show');
-    
+
     api('/api/analytics/drilldown', 'POST', {
         filter_type: filterType,
         filter_value: filterValue,
         scope: scope,
         scope_value: scopeValue
     })
-    .then(data => {
-        if (data.success) {
-            populateDrilldownModal(modal, data.students, data.filter_info);
-        } else {
-            title.textContent = 'ERROR LOADING DATA';
-            count.textContent = 'Failed to load';
-            tbody.innerHTML = `
+        .then(data => {
+            if (data.success) {
+                populateDrilldownModal(modal, data.students, data.filter_info);
+            } else {
+                title.textContent = 'ERROR LOADING DATA';
+                count.textContent = 'Failed to load';
+                tbody.innerHTML = `
                 <tr>
                     <td colspan="8" class="drilldown-empty">
                         <i class="fa-solid fa-exclamation-triangle"></i>
@@ -2851,13 +3002,13 @@ function performDrilldown(filterType, filterValue, scope, scopeValue) {
                     </td>
                 </tr>
             `;
-        }
-    })
-    .catch(error => {
-        console.error('Drilldown error:', error);
-        title.textContent = 'NETWORK ERROR';
-        count.textContent = 'Connection failed';
-        tbody.innerHTML = `
+            }
+        })
+        .catch(error => {
+            console.error('Drilldown error:', error);
+            title.textContent = 'NETWORK ERROR';
+            count.textContent = 'Connection failed';
+            tbody.innerHTML = `
             <tr>
                 <td colspan="8" class="drilldown-empty">
                     <i class="fa-solid fa-wifi" style="color: #f44336;"></i>
@@ -2868,7 +3019,7 @@ function performDrilldown(filterType, filterValue, scope, scopeValue) {
                 </td>
             </tr>
         `;
-    });
+        });
 }
 
 function addUniversalDrilldownHandlers(chartIds, scope, scopeValue) {
@@ -2877,12 +3028,12 @@ function addUniversalDrilldownHandlers(chartIds, scope, scopeValue) {
         if (chartElement) {
             // Remove existing handlers
             chartElement.removeAllListeners && chartElement.removeAllListeners('plotly_click');
-            
+
             if (chartElement.on) {
-                chartElement.on('plotly_click', function(data) {
+                chartElement.on('plotly_click', function (data) {
                     const point = data.points[0];
                     let filterType, filterValue;
-                    
+
                     if (chartId.includes('perf')) {
                         filterType = 'performance_label';
                         filterValue = (point.label || point.x || 'high').toLowerCase();
@@ -2896,7 +3047,7 @@ function addUniversalDrilldownHandlers(chartIds, scope, scopeValue) {
                         filterType = 'performance_label';
                         filterValue = 'high';
                     }
-                    
+
                     performDrilldown(filterType, filterValue, scope, scopeValue);
                 });
             }
@@ -2906,7 +3057,7 @@ function addUniversalDrilldownHandlers(chartIds, scope, scopeValue) {
 
 async function showStudentList(filterType, filterValue, title) {
     if (!currentBatchYear) return;
-    
+
     performDrilldown(filterType, filterValue, 'batch', currentBatchYear);
 }
 
@@ -2914,12 +3065,12 @@ function displayStudentModal(students, title) {
     const modal = document.getElementById('student-modal');
     const modalTitle = document.getElementById('modal-title');
     const tbody = document.querySelector('#modal-student-table tbody');
-    
+
     if (!modal || !modalTitle || !tbody) return;
-    
+
     modalTitle.textContent = `${title} (${students.length} students)`;
     tbody.innerHTML = '';
-    
+
     students.forEach(student => {
         const tr = document.createElement('tr');
         tr.innerHTML = `
@@ -2934,7 +3085,7 @@ function displayStudentModal(students, title) {
         `;
         tbody.appendChild(tr);
     });
-    
+
     modal.classList.remove('hidden');
 }
 
@@ -2970,31 +3121,31 @@ function setupSidebarToggle() {
     const sidebar = document.getElementById('sidebar');
     const miniSidebar = document.getElementById('mini-sidebar');
     const mainContent = document.querySelector('.main-content');
-    
+
     if (!toggleBtn || !sidebar || !miniSidebar) return;
-    
+
     const overlay = document.createElement('div');
     overlay.className = 'sidebar-overlay';
     document.body.appendChild(overlay);
-    
+
     let isOpen = true;
-    
+
     // Setup mini-sidebar navigation
     const miniNavBtns = miniSidebar.querySelectorAll('.mini-nav-btn');
     miniNavBtns.forEach(btn => {
         btn.addEventListener('click', () => {
             miniNavBtns.forEach(b => b.classList.remove('active'));
             btn.classList.add('active');
-            
+
             const mode = btn.getAttribute('data-mode');
             document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
             document.querySelector(`[data-mode="${mode}"]`).classList.add('active');
-            
+
             document.querySelectorAll('.mode-section').forEach(sec => {
                 sec.classList.remove('active');
                 sec.classList.add('hidden');
             });
-            
+
             const target = document.getElementById(`mode-${mode}`);
             if (target) {
                 target.classList.remove('hidden');
@@ -3002,10 +3153,10 @@ function setupSidebarToggle() {
             }
         });
     });
-    
+
     toggleBtn.addEventListener('click', () => {
         isOpen = !isOpen;
-        
+
         if (window.innerWidth <= 900) {
             if (isOpen) {
                 sidebar.classList.add('open');
@@ -3028,7 +3179,7 @@ function setupSidebarToggle() {
             }
         }
     });
-    
+
     overlay.addEventListener('click', () => {
         if (window.innerWidth <= 900) {
             isOpen = false;
@@ -3037,12 +3188,12 @@ function setupSidebarToggle() {
             miniSidebar.classList.add('active');
         }
     });
-    
+
     let clickTimeout;
-    
+
     document.addEventListener('click', (e) => {
         if (window.innerWidth <= 900) return;
-        
+
         // Close sidebar if clicking outside when open
         if (!sidebar.contains(e.target) && !miniSidebar.contains(e.target) && !toggleBtn.contains(e.target) && isOpen) {
             isOpen = false;
@@ -3051,10 +3202,10 @@ function setupSidebarToggle() {
             miniSidebar.classList.add('active');
         }
     });
-    
+
     document.addEventListener('dblclick', (e) => {
         if (window.innerWidth <= 900) return;
-        
+
         // Open sidebar on double-click anywhere when closed
         if (!sidebar.contains(e.target) && !miniSidebar.contains(e.target) && !isOpen) {
             isOpen = true;
@@ -3063,7 +3214,7 @@ function setupSidebarToggle() {
             miniSidebar.classList.remove('active');
         }
     });
-    
+
     window.addEventListener('resize', () => {
         if (window.innerWidth > 900) {
             overlay.classList.remove('active');
@@ -3144,27 +3295,27 @@ function loginAndNavigate(mode) {
 function performLogin() {
     const username = document.getElementById('login-username').value.trim();
     const password = document.getElementById('login-password').value.trim();
-    
+
     if (!username || !password) {
         alert('Please enter both username and password');
         return;
     }
-    
+
     // Simple authentication (in production, this should be server-side)
     if (username === 'admin' && password === 'admin123') {
         isLoggedIn = true;
         currentUser = { username: 'admin', name: 'Administrator' };
-        
+
         hideLogin();
         showDashboard();
-        
+
         if (pendingNavigation) {
             setTimeout(() => {
                 navigateToMode(pendingNavigation);
                 pendingNavigation = null;
             }, 500);
         }
-        
+
         showSuccessAlert('Login successful! Welcome to EduMetric Dashboard.');
     } else {
         showErrorAlert('Invalid credentials. Please try again.');
@@ -3177,7 +3328,7 @@ function showDashboard() {
     const landingPage = document.getElementById('landing-page');
     const appShell = document.getElementById('app-shell');
     const profileName = document.getElementById('profile-name');
-    
+
     if (landingPage) landingPage.style.display = 'none';
     if (appShell) appShell.style.display = 'block';
     if (profileName && currentUser) profileName.textContent = currentUser.name;
@@ -3188,13 +3339,13 @@ function navigateToMode(mode) {
     document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('active'));
     const targetBtn = document.querySelector(`[data-mode="${mode}"]`);
     if (targetBtn) targetBtn.classList.add('active');
-    
+
     // Show the corresponding mode section
     document.querySelectorAll('.mode-section').forEach(sec => {
         sec.classList.remove('active');
         sec.classList.add('hidden');
     });
-    
+
     const targetSection = document.getElementById(`mode-${mode}`);
     if (targetSection) {
         targetSection.classList.remove('hidden');
@@ -3214,31 +3365,31 @@ function logout() {
         isLoggedIn = false;
         currentUser = null;
         pendingNavigation = null;
-        
+
         const landingPage = document.getElementById('landing-page');
         const appShell = document.getElementById('app-shell');
         const profileMenu = document.getElementById('profile-menu');
-        
+
         if (landingPage) landingPage.style.display = 'block';
         if (appShell) appShell.style.display = 'none';
         if (profileMenu) profileMenu.classList.remove('show');
-        
+
         showSuccessAlert('Logged out successfully!');
     }
 }
 
 // Close profile menu when clicking outside
-document.addEventListener('click', function(e) {
+document.addEventListener('click', function (e) {
     const profileDropdown = document.querySelector('.profile-dropdown');
     const profileMenu = document.getElementById('profile-menu');
-    
+
     if (profileDropdown && profileMenu && !profileDropdown.contains(e.target)) {
         profileMenu.classList.remove('show');
     }
 });
 
 // Handle Enter key in login form
-document.addEventListener('keydown', function(e) {
+document.addEventListener('keydown', function (e) {
     if (e.key === 'Enter') {
         const loginModal = document.getElementById('login-modal');
         if (loginModal && loginModal.classList.contains('show')) {
@@ -3252,7 +3403,110 @@ window.addEventListener('DOMContentLoaded', () => {
     // Show landing page by default
     const landingPage = document.getElementById('landing-page');
     const appShell = document.getElementById('app-shell');
-    
+
     if (landingPage) landingPage.style.display = 'block';
     if (appShell) appShell.style.display = 'none';
 });
+
+/* ===========================================================
+   EXPORT FUNCTIONALITY
+   =========================================================== */
+
+function exportTableToCSV(tableId, filename) {
+    const table = document.getElementById(tableId);
+    if (!table) {
+        alert("Table not found to export!");
+        return;
+    }
+
+    let csv = [];
+    const rows = table.querySelectorAll("tr");
+
+    for (let i = 0; i < rows.length; i++) {
+        const row = [], cols = rows[i].querySelectorAll("td, th");
+
+        // Skip rows that say "No students found"
+        if (cols.length === 1 && cols[0].innerText.includes("No students")) continue;
+
+        for (let j = 0; j < cols.length; j++) {
+            // Clean inner text to remove newlines and commas
+            let data = cols[j].innerText.replace(/(\r\n|\n|\r)/gm, " ").replace(/(\s\s)/gm, " ");
+            data = data.replace(/"/g, '""'); // Escape double quotes
+            row.push('"' + data + '"');
+        }
+        csv.push(row.join(","));
+    }
+
+    downloadCSV(csv.join("\n"), filename);
+}
+
+function downloadCSV(csv, filename) {
+    const csvFile = new Blob([csv], { type: "text/csv" });
+    const downloadLink = document.createElement("a");
+
+    downloadLink.download = filename;
+    downloadLink.href = window.URL.createObjectURL(csvFile);
+    downloadLink.style.display = "none";
+    document.body.appendChild(downloadLink);
+    downloadLink.click();
+    document.body.removeChild(downloadLink);
+}
+
+function exportDeptCSV() {
+    const dept = document.getElementById("d-dept").value || "Department";
+    exportTableToCSV("dept-table", `EduMetric_${dept}_Analysis.csv`);
+}
+
+function exportYearCSV() {
+    const year = document.getElementById("y-year").value || "Year";
+    exportTableToCSV("year-table", `EduMetric_Year_${year}_Analysis.csv`);
+}
+
+function exportCollegeCSV() {
+    exportTableToCSV("clg-table", "EduMetric_College_Analysis.csv");
+}
+
+function exportDrilldownCSV() {
+    exportTableToCSV("drilldown-table", "EduMetric_Drilldown_Data.csv");
+}
+
+function exportStudentCSV() {
+    // For single student, we create a CSV from the displayed data or currentStudent object
+    // Assuming currentStudent object is available globally or we can grab from DOM
+
+    // Check if we have currentStudent data (it's usually set in analyseStudent)
+    // If not, we scrape the basic info
+
+    try {
+        let data = [];
+        // Header
+        data.push(['Attribute', 'Value'].join(","));
+
+        // Basic Info
+        const basicInfo = document.getElementById("student-basic");
+        if (basicInfo) {
+            const text = basicInfo.innerText;
+            // Parse text roughly if needed, or just dump it
+            // Better to use currentStudent if available
+            if (typeof currentStudent !== 'undefined' && currentStudent) {
+                for (const [key, value] of Object.entries(currentStudent)) {
+                    data.push(`"${key}","${value}"`);
+                }
+            } else {
+                data.push(`"Report Content","${text.replace(/\n/g, ' ')}"`);
+            }
+        }
+
+        // Add Summary
+        const summary = document.getElementById("st-summary-text");
+        if (summary) {
+            data.push(`"AI Summary","${summary.innerText.replace(/\n/g, ' ')}"`);
+        }
+
+        downloadCSV(data.join("\n"), "EduMetric_Student_Report.csv");
+
+    } catch (e) {
+        console.error("Export error:", e);
+        alert("Failed to export student data.");
+    }
+}

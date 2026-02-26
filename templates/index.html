@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <title>Intelligent Student Performance Analytics</title>
@@ -9,8 +10,7 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 
     <!-- Font Awesome -->
-    <link rel="stylesheet"
-          href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"/>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" />
 
     <!-- Plotly -->
     <script src="https://cdn.plot.ly/plotly-2.30.0.min.js"></script>
@@ -19,1078 +19,921 @@
     <!-- <script src="{{ url_for('static', filename='js/chat.js') }}"></script> -->
     <!-- App JS -->
     <script defer src="{{ url_for('static', filename='js/app.js') }}"></script>
+    <!-- Previous Plots JS -->
+    <script defer src="{{ url_for('static', filename='js/previous_plots.js') }}"></script>
 </head>
+
 <body>
 
-<!-- LANDING PAGE -->
-<div id="landing-page" class="landing-page">
-    <!-- Enhanced Floating Cloud Elements -->
-    <div class="floating-elements">
-        <div class="cloud cloud1"></div>
-        <div class="cloud cloud2"></div>
-        <div class="cloud cloud3"></div>
-        <div class="cloud cloud4"></div>
-        <div class="cloud cloud5"></div>
-        <div class="cloud cloud6"></div>
-        <div class="cloud cloud7"></div>
-        <div class="cloud cloud8"></div>
+    <!-- LANDING PAGE -->
+    <div id="landing-page" class="landing-page">
+        <!-- Navigation Header -->
+        <header class="landing-header">
+            <div class="landing-logo">
+                <img src="https://cdn-icons-png.flaticon.com/512/2436/2436874.png" alt="EduMetric Logo">
+                <h1>EduMetric</h1>
+            </div>
+            <nav class="landing-nav">
+                <a href="#features" class="nav-link">Features</a>
+                <a href="#about" class="nav-link">About</a>
+                <a href="#how-it-works" class="nav-link">How It Works</a>
+            </nav>
+            <div class="landing-auth">
+                <button class="auth-btn ripple-effect" onclick="showLogin()">
+                    <i class="fa-solid fa-sign-in-alt"></i>
+                    Admin Login
+                </button>
+            </div>
+        </header>
+
+        <!-- SECTION 1: Hero Section with College Image -->
+        <section class="hero-section" id="hero">
+            <div class="hero-container">
+                <div class="hero-content">
+                    <span class="hero-badge"> AI-Powered Analytics Platform</span>
+                    <h1>Intelligent Student Performance Analytics</h1>
+                    <p>Transform educational outcomes with machine learning. Predict student performance, identify
+                        at-risk learners, and enable proactive interventions for academic excellence.</p>
+                    <div class="hero-cta">
+                        <button class="cta-primary" onclick="showLogin()">
+                            <i class="fa-solid fa-rocket"></i> Get Started Free
+                        </button>
+                        <button class="cta-secondary"
+                            onclick="document.getElementById('features').scrollIntoView({behavior: 'smooth'})">
+                            <i class="fa-solid fa-play"></i> See How It Works
+                        </button>
+                    </div>
+                    <div class="hero-stats">
+                        <div class="hero-stat">
+                            <span class="stat-value">95%</span>
+                            <span class="stat-label">Prediction Accuracy</span>
+                        </div>
+                        <div class="hero-stat">
+                            <span class="stat-value">500+</span>
+                            <span class="stat-label">Institutions</span>
+                        </div>
+                        <div class="hero-stat">
+                            <span class="stat-value">40%</span>
+                            <span class="stat-label">Dropout Reduction</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="hero-image">
+                    <img src="https://images.unsplash.com/photo-1523240795612-9a054b0db644?w=600&h=400&fit=crop"
+                        alt="Students collaborating in modern university">
+                    <div class="hero-image-overlay"></div>
+                </div>
+            </div>
+        </section>
+
+        <!-- SECTION 2: Features Grid -->
+        <section class="features-section" id="features">
+            <div class="section-container">
+                <div class="section-header">
+                    <h2>Powerful Analytics Features</h2>
+                    <p>Comprehensive tools designed for modern educational institutions</p>
+                </div>
+                <div class="features-grid">
+                    <div class="feature-card ripple-effect" onclick="loginAndNavigate('student')">
+                        <div class="feature-icon">
+                            <i class="fa-solid fa-user-graduate"></i>
+                        </div>
+                        <h3>Student Analytics</h3>
+                        <p>Individual performance prediction with personalized risk assessment and intervention
+                            recommendations.</p>
+                    </div>
+                    <div class="feature-card ripple-effect" onclick="loginAndNavigate('department')">
+                        <div class="feature-icon">
+                            <i class="fa-solid fa-building-columns"></i>
+                        </div>
+                        <h3>Department Insights</h3>
+                        <p>Comprehensive departmental analysis with comparative metrics and strategic performance
+                            insights.</p>
+                    </div>
+                    <div class="feature-card ripple-effect" onclick="loginAndNavigate('year')">
+                        <div class="feature-icon">
+                            <i class="fa-solid fa-calendar-days"></i>
+                        </div>
+                        <h3>Year-wise Tracking</h3>
+                        <p>Academic year performance monitoring with cohort analysis and progression tracking.</p>
+                    </div>
+                    <div class="feature-card ripple-effect" onclick="loginAndNavigate('college')">
+                        <div class="feature-icon">
+                            <i class="fa-solid fa-school"></i>
+                        </div>
+                        <h3>College Overview</h3>
+                        <p>Institution-wide analytics with comprehensive reports and decision-making support.</p>
+                    </div>
+                    <div class="feature-card ripple-effect" onclick="loginAndNavigate('batch')">
+                        <div class="feature-icon">
+                            <i class="fa-solid fa-cloud-arrow-up"></i>
+                        </div>
+                        <h3>Batch Processing</h3>
+                        <p>Bulk data upload with automated analytics generation and real-time insights.</p>
+                    </div>
+                    <div class="feature-card ripple-effect" onclick="loginAndNavigate('batch')">
+                        <div class="feature-icon">
+                            <i class="fa-solid fa-bell"></i>
+                        </div>
+                        <h3>Smart Alerts</h3>
+                        <p>Automated mentor notifications when students require immediate attention.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- SECTION 3: About EduMetric with Image -->
+        <section class="about-section" id="about">
+            <div class="section-container">
+                <div class="about-grid">
+                    <div class="about-image">
+                        <img src="https://images.unsplash.com/photo-1427504494785-3a9ca7044f45?w=500&h=350&fit=crop"
+                            alt="University campus with students">
+                        <div class="about-image-badge">
+                            <i class="fa-solid fa-award"></i>
+                            <span>Final Year Project</span>
+                        </div>
+                    </div>
+                    <div class="about-content">
+                        <span class="about-badge">About EduMetric</span>
+                        <h2>Transforming Education Through AI</h2>
+                        <p>EduMetric is an advanced student performance prediction system leveraging Machine Learning to
+                            provide comprehensive analytics for educational institutions. Built as a final year project,
+                            it addresses critical needs for early intervention systems.</p>
+                        <ul class="about-features">
+                            <li><i class="fa-solid fa-check-circle"></i> AI-powered performance prediction with 95%
+                                accuracy</li>
+                            <li><i class="fa-solid fa-check-circle"></i> Real-time risk assessment and early warning
+                                system</li>
+                            <li><i class="fa-solid fa-check-circle"></i> Automated mentor alert notifications</li>
+                            <li><i class="fa-solid fa-check-circle"></i> Interactive dashboards and visualizations</li>
+                        </ul>
+                        <div class="tech-badges">
+                            <span class="tech-badge"><i class="fa-brands fa-python"></i> Python</span>
+                            <span class="tech-badge"><i class="fa-solid fa-flask"></i> Flask</span>
+                            <span class="tech-badge"><i class="fa-solid fa-brain"></i> ML</span>
+                            <span class="tech-badge"><i class="fa-solid fa-database"></i> MySQL</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- SECTION 4: How It Works -->
+        <section class="how-section" id="how-it-works">
+            <div class="section-container">
+                <div class="section-header">
+                    <h2>How EduMetric Works</h2>
+                    <p>Simple steps to transform your institution's analytics</p>
+                </div>
+                <div class="steps-grid">
+                    <div class="step-card">
+                        <div class="step-number">1</div>
+                        <div class="step-icon"><i class="fa-solid fa-database"></i></div>
+                        <h3>Upload Data</h3>
+                        <p>Import student records through CSV upload or manual entry</p>
+                    </div>
+                    <div class="step-card">
+                        <div class="step-number">2</div>
+                        <div class="step-icon"><i class="fa-solid fa-brain"></i></div>
+                        <h3>ML Analysis</h3>
+                        <p>Our AI models analyze patterns and predict outcomes</p>
+                    </div>
+                    <div class="step-card">
+                        <div class="step-number">3</div>
+                        <div class="step-icon"><i class="fa-solid fa-chart-pie"></i></div>
+                        <h3>View Insights</h3>
+                        <p>Access comprehensive dashboards and visualizations</p>
+                    </div>
+                    <div class="step-card">
+                        <div class="step-number">4</div>
+                        <div class="step-icon"><i class="fa-solid fa-paper-plane"></i></div>
+                        <h3>Take Action</h3>
+                        <p>Send alerts and implement interventions for at-risk students</p>
+                    </div>
+                </div>
+                <div class="how-image">
+                    <img src="https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?w=800&h=300&fit=crop"
+                        alt="Analytics dashboard on laptop">
+                </div>
+            </div>
+        </section>
+
+        <!-- SECTION 5: CTA + Footer -->
+        <section class="cta-footer-section">
+            <div class="cta-container">
+                <div class="cta-content">
+                    <h2>Ready to Transform Your Institution?</h2>
+                    <p>Join leading educational institutions using EduMetric for better student outcomes</p>
+                    <button class="cta-button ripple-effect" onclick="showLogin()">
+                        <i class="fa-solid fa-rocket"></i>
+                        Get Started Now
+                    </button>
+                </div>
+                <div class="cta-image">
+                    <img src="https://images.unsplash.com/photo-1517245386807-bb43f82c33c4?w=400&h=250&fit=crop"
+                        alt="Team collaboration">
+                </div>
+            </div>
+            <footer class="landing-footer">
+                <div class="footer-content">
+                    <div class="footer-brand">
+                        <h3>EduMetric</h3>
+                        <p>Intelligent Student Performance Analytics Platform</p>
+                    </div>
+                    <div class="footer-links">
+                        <a href="#features">Features</a>
+                        <a href="#about">About</a>
+                        <a href="#how-it-works">How It Works</a>
+                    </div>
+                    <div class="footer-copyright">
+                        <p>&copy; 2024 EduMetric. Final Year Project - Educational Technology & AI</p>
+                    </div>
+                </div>
+            </footer>
+        </section>
     </div>
-    
-    <header class="landing-header">
-        <div class="landing-logo">
-            <img src="https://www.nistglobal.com/icons/lifting&amp;rigging/Icon3.svg" alt="EduMetric Logo">
-            <h1>EduMetric</h1>
-        </div>
-        <div class="landing-auth">
-            <button class="auth-btn ripple-effect" onclick="showLogin()">
+
+    <!-- LOGIN MODAL -->
+    <div id="login-modal" class="login-modal">
+        <div class="login-form">
+            <button class="login-close" onclick="hideLogin()">&times;</button>
+            <h3>Admin Login</h3>
+            <p class="login-subtitle">Access your EduMetric analytics dashboard</p>
+
+            <div class="form-group">
+                <label>Username</label>
+                <div class="input-container">
+                    <input type="text" id="login-username" placeholder="Enter your username">
+                    <i class="fa-solid fa-user input-icon"></i>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>Password</label>
+                <div class="input-container">
+                    <input type="password" id="login-password" placeholder="Enter your password">
+                    <i class="fa-solid fa-lock input-icon"></i>
+                </div>
+            </div>
+
+            <button class="login-btn" onclick="performLogin()">
                 <i class="fa-solid fa-sign-in-alt"></i>
-                Admin Login
+                Login to Dashboard
             </button>
-        </div>
-    </header>
-    
-    <div class="landing-hero">
-        <div class="hero-content">
-            <h2>Intelligent Student Performance Analytics</h2>
-            <p>Harness the power of Machine Learning to predict student performance, identify at-risk students, and enable proactive interventions for academic success.</p>
+
+            <div class="demo-credentials">
+                <h4><i class="fa-solid fa-info-circle"></i> Demo Credentials</h4>
+                <p>Username: <span class="demo-value">admin</span></p>
+                <p>Password: <span class="demo-value">admin123</span></p>
+            </div>
         </div>
     </div>
-    
-    <div class="features-grid">
-        <div class="feature-card ripple-effect" onclick="loginAndNavigate('student')">
-            <i class="fa-solid fa-user-graduate"></i>
-            <h3>Student Analytics</h3>
-            <p>Individual student performance prediction, risk assessment, and personalized insights with detailed reporting and intervention recommendations.</p>
-        </div>
-        <div class="feature-card ripple-effect" onclick="loginAndNavigate('department')">
-            <i class="fa-solid fa-building-columns"></i>
-            <h3>Department Analytics</h3>
-            <p>Comprehensive departmental performance analysis with comparative metrics, trend visualization, and strategic insights.</p>
-        </div>
-        <div class="feature-card ripple-effect" onclick="loginAndNavigate('year')">
-            <i class="fa-solid fa-calendar-days"></i>
-            <h3>Year-wise Analytics</h3>
-            <p>Academic year performance tracking with cohort analysis, progression monitoring, and predictive modeling.</p>
-        </div>
-        <div class="feature-card ripple-effect" onclick="loginAndNavigate('batch-analytics')">
-            <i class="fa-solid fa-users-gear"></i>
-            <h3>Batch Analytics</h3>
-            <p>Batch-wise performance comparison with graduation readiness assessment and placement predictions.</p>
-        </div>
-        <div class="feature-card ripple-effect" onclick="loginAndNavigate('college')">
-            <i class="fa-solid fa-school"></i>
-            <h3>College Analytics</h3>
-            <p>Institution-wide analytics with comprehensive reporting, strategic insights, and decision-making support.</p>
-        </div>
-        <div class="feature-card ripple-effect" onclick="loginAndNavigate('batch')">
-            <i class="fa-solid fa-cloud-arrow-up"></i>
-            <h3>Batch Upload</h3>
-            <p>Bulk data processing with automated analytics generation, smart data normalization, and real-time insights.</p>
-        </div>
-    </div>
-    
-    <!-- About EduMetric Section -->
-    <section class="about-section scroll-animate">
-        <div class="section-clouds">
-            <div class="section-cloud section-cloud1"></div>
-            <div class="section-cloud section-cloud2"></div>
-        </div>
-        <div class="about-container">
-            <div class="about-header">
-                <h2 class="about-title">About EduMetric</h2>
-                <p class="about-subtitle">A cutting-edge Machine Learning platform designed to revolutionize student performance analytics and educational outcomes.</p>
-            </div>
-            
-            <div class="about-content">
-                <div class="about-text">
-                    <h3>Transforming Education Through AI</h3>
-                    <p>EduMetric is an advanced student performance prediction system that leverages Machine Learning to provide comprehensive analytics for educational institutions. Our platform combines sophisticated algorithms with intuitive interfaces to deliver actionable insights.</p>
-                    
-                    <p>Built as a comprehensive solution for modern educational challenges, EduMetric addresses the critical need for early intervention systems that can identify at-risk students and provide timely support.</p>
-                </div>
-                
-                <div class="about-features">
-                    <h3 style="margin-bottom: 30px; color: #2c3e50;">Key Capabilities</h3>
-                    <ul class="feature-list">
-                        <li><i class="fa-solid fa-check"></i> AI-powered performance prediction with 95% accuracy</li>
-                        <li><i class="fa-solid fa-check"></i> Real-time risk assessment and early warning system</li>
-                        <li><i class="fa-solid fa-check"></i> Comprehensive student analytics and reporting</li>
-                        <li><i class="fa-solid fa-check"></i> Department and institutional-level insights</li>
-                        <li><i class="fa-solid fa-check"></i> Automated mentor alert notifications</li>
-                        <li><i class="fa-solid fa-check"></i> Interactive dashboards and visualizations</li>
-                        <li><i class="fa-solid fa-check"></i> Batch processing and data management</li>
-                        <li><i class="fa-solid fa-check"></i> Mobile-responsive design for accessibility</li>
-                    </ul>
-                </div>
-            </div>
-            
-            <div class="tech-stack">
-                <h3 class="tech-title">Technology Stack</h3>
-                <div class="tech-grid">
-                    <div class="tech-card">
-                        <div class="tech-icon"><i class="fa-brands fa-python"></i></div>
-                        <div class="tech-name">Python & Flask</div>
-                        <div class="tech-description">Backend development with Flask framework for robust API services</div>
-                    </div>
-                    <div class="tech-card">
-                        <div class="tech-icon"><i class="fa-solid fa-brain"></i></div>
-                        <div class="tech-name">Machine Learning</div>
-                        <div class="tech-description">Scikit-learn, Pandas, NumPy for advanced analytics and predictions</div>
-                    </div>
-                    <div class="tech-card">
-                        <div class="tech-icon"><i class="fa-brands fa-js-square"></i></div>
-                        <div class="tech-name">JavaScript & Plotly</div>
-                        <div class="tech-description">Interactive frontend with dynamic charts and visualizations</div>
-                    </div>
-                    <div class="tech-card">
-                        <div class="tech-icon"><i class="fa-solid fa-database"></i></div>
-                        <div class="tech-name">Data Processing</div>
-                        <div class="tech-description">CSV/Excel processing with automated data normalization</div>
-                    </div>
-                </div>
-            </div>
-            
-            <div class="project-details">
-                <h3 class="project-title">Project Information</h3>
-                <p style="font-size: 18px; color: #5a6c7d; margin-bottom: 30px;">Final Year Project - Intelligent Student Performance Analytics System</p>
-                
-                <div class="project-info">
-                    <div class="info-card">
-                        <div class="info-label">Project Type</div>
-                        <div class="info-value">Final Year Academic Project</div>
-                    </div>
-                    <div class="info-card">
-                        <div class="info-label">Domain</div>
-                        <div class="info-value">Educational Technology & AI</div>
-                    </div>
-                    <div class="info-card">
-                        <div class="info-label">Development Period</div>
-                        <div class="info-value">2024 Academic Year</div>
-                    </div>
-                    <div class="info-card">
-                        <div class="info-label">Primary Focus</div>
-                        <div class="info-value">Machine Learning in Education</div>
-                    </div>
-                    <div class="info-card">
-                        <div class="info-label">Target Users</div>
-                        <div class="info-value">Educational Institutions</div>
-                    </div>
-                    <div class="info-card">
-                        <div class="info-label">Implementation</div>
-                        <div class="info-value">Full-Stack Web Application</div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </section>
-    
-    <!-- Statistics Section -->
-    <section class="stats-section scroll-animate">
-        <div class="section-clouds">
-            <div class="section-cloud section-cloud1"></div>
-        </div>
-        <div class="stats-container">
-            <h2 class="stats-title">Transforming Education with Data</h2>
-            <p class="stats-subtitle">Our AI-powered platform helps educational institutions improve student outcomes and optimize academic performance.</p>
-            
-            <div class="stats-grid">
-                <div class="stat-card">
-                    <span class="stat-number">95%</span>
-                    <div class="stat-label">Prediction Accuracy</div>
-                    <div class="stat-description">Machine learning models with industry-leading accuracy in performance prediction</div>
-                </div>
-                <div class="stat-card">
-                    <span class="stat-number">500+</span>
-                    <div class="stat-label">Institutions Served</div>
-                    <div class="stat-description">Colleges and universities worldwide trust our analytics platform</div>
-                </div>
-                <div class="stat-card">
-                    <span class="stat-number">2M+</span>
-                    <div class="stat-label">Students Analyzed</div>
-                    <div class="stat-description">Comprehensive analytics covering millions of student records</div>
-                </div>
-                <div class="stat-card">
-                    <span class="stat-number">40%</span>
-                    <div class="stat-label">Dropout Reduction</div>
-                    <div class="stat-description">Average reduction in student dropout rates through early intervention</div>
-                </div>
-            </div>
-        </div>
-    </section>
-    
-    <!-- Benefits Section -->
-    <section class="benefits-section scroll-animate">
-        <div class="section-clouds">
-            <div class="section-cloud section-cloud2"></div>
-        </div>
-        <div class="benefits-container">
-            <h2 class="benefits-title">Why Choose EduMetric?</h2>
-            <p class="benefits-subtitle">Comprehensive solutions designed for modern educational institutions and college management systems.</p>
-            
-            <div class="benefits-grid">
-                <div class="benefit-card">
-                    <div class="benefit-icon">
-                        <i class="fa-solid fa-brain"></i>
-                    </div>
-                    <h3 class="benefit-title">AI-Powered Insights</h3>
-                    <p class="benefit-description">Advanced machine learning algorithms analyze student data to provide actionable insights and predictive analytics for better decision-making.</p>
-                </div>
-                <div class="benefit-card">
-                    <div class="benefit-icon">
-                        <i class="fa-solid fa-shield-halved"></i>
-                    </div>
-                    <h3 class="benefit-title">Early Risk Detection</h3>
-                    <p class="benefit-description">Identify at-risk students before problems escalate. Our system provides early warning alerts to enable timely interventions and support.</p>
-                </div>
-                <div class="benefit-card">
-                    <div class="benefit-icon">
-                        <i class="fa-solid fa-chart-line"></i>
-                    </div>
-                    <h3 class="benefit-title">Real-time Analytics</h3>
-                    <p class="benefit-description">Monitor student performance, attendance, and engagement in real-time with interactive dashboards and comprehensive reporting tools.</p>
-                </div>
-                <div class="benefit-card">
-                    <div class="benefit-icon">
-                        <i class="fa-solid fa-users-cog"></i>
-                    </div>
-                    <h3 class="benefit-title">Institutional Management</h3>
-                    <p class="benefit-description">Streamline college operations with department-wise analytics, batch management, and comprehensive institutional oversight capabilities.</p>
-                </div>
-                <div class="benefit-card">
-                    <div class="benefit-icon">
-                        <i class="fa-solid fa-envelope"></i>
-                    </div>
-                    <h3 class="benefit-title">Automated Alerts</h3>
-                    <p class="benefit-description">Automatic notification system for mentors and administrators when students require immediate attention or intervention.</p>
-                </div>
-                <div class="benefit-card">
-                    <div class="benefit-icon">
-                        <i class="fa-solid fa-mobile-alt"></i>
-                    </div>
-                    <h3 class="benefit-title">Mobile Responsive</h3>
-                    <p class="benefit-description">Access your analytics dashboard from anywhere, on any device. Fully responsive design ensures seamless experience across platforms.</p>
-                </div>
-            </div>
-        </div>
-    </section>
-    
-    <!-- Call to Action Section -->
-    <section class="cta-section scroll-animate">
-        <div class="cta-container">
-            <h2 class="cta-title">Ready to Transform Your Institution?</h2>
-            <p class="cta-subtitle">Join hundreds of educational institutions already using EduMetric to improve student outcomes and optimize academic performance.</p>
-            <button class="cta-button ripple-effect" onclick="showLogin()">
-                <i class="fa-solid fa-rocket"></i>
-                Get Started Today
-            </button>
-        </div>
-    </section>
-    
-    <!-- Footer Section -->
-    <footer class="footer-section">
-        <div class="footer-container">
-            <div class="footer-logo">EduMetric</div>
-            <p class="footer-description">
-                Empowering educational institutions with intelligent analytics and predictive insights to enhance student success and institutional excellence.
-            </p>
-            <div class="footer-links">
-                <a href="#" class="footer-link">About Us</a>
-                <a href="#" class="footer-link">Features</a>
-                <a href="#" class="footer-link">Pricing</a>
-                <a href="#" class="footer-link">Support</a>
-                <a href="#" class="footer-link">Contact</a>
-            </div>
-            <div class="footer-bottom">
-                <p>&copy; 2024 EduMetric. All rights reserved. | Intelligent Student Performance Analytics Platform</p>
-            </div>
-        </div>
-    </footer>
-</div>
 
-<!-- LOGIN MODAL -->
-<div id="login-modal" class="login-modal">
-    <div class="login-form">
-        <button class="login-close" onclick="hideLogin()">&times;</button>
-        <h3>Admin Login</h3>
-        <p class="login-subtitle">Access your EduMetric analytics dashboard</p>
-        
-        <div class="form-group">
-            <label>Username</label>
-            <div class="input-container">
-                <input type="text" id="login-username" placeholder="Enter your username">
-                <i class="fa-solid fa-user input-icon"></i>
-            </div>
-        </div>
-        
-        <div class="form-group">
-            <label>Password</label>
-            <div class="input-container">
-                <input type="password" id="login-password" placeholder="Enter your password">
-                <i class="fa-solid fa-lock input-icon"></i>
-            </div>
-        </div>
-        
-        <button class="login-btn" onclick="performLogin()">
-            <i class="fa-solid fa-sign-in-alt"></i>
-            Login to Dashboard
-        </button>
-        
-        <div class="demo-credentials">
-            <h4><i class="fa-solid fa-info-circle"></i> Demo Credentials</h4>
-            <p>Username: <span class="demo-value">admin</span></p>
-            <p>Password: <span class="demo-value">admin123</span></p>
-        </div>
-    </div>
-</div>
+    <div class="app-shell" id="app-shell" style="display: none;">
 
-<div class="app-shell" id="app-shell" style="display: none;">
-
-    <!-- HEADER -->
-    <header class="app-header">
-        <div class="header-left">
-            <button id="sidebar-toggle" class="sidebar-toggle">
-                <i class="fa-solid fa-bars"></i>
-            </button>
-            <div class="header-title">
-                <img src="https://www.nistglobal.com/icons/lifting&amp;rigging/Icon3.svg" alt="Logo" style="width: 40px; height: 40px; margin-right: 12px;">
-                <span class="app-title">EduMetric – Intelligent Student Performance Analytics Using Machine Learning</span>
-            </div>
-        </div>
-        <div class="header-meta">
-            <span id="total-stats"></span>
-            <div class="profile-dropdown">
-                <button class="profile-btn" onclick="toggleProfile()">
-                    <i class="fa-solid fa-user-circle"></i>
-                    <span id="profile-name">Admin</span>
-                    <i class="fa-solid fa-chevron-down"></i>
+        <!-- HEADER -->
+        <header class="app-header">
+            <div class="header-left">
+                <button id="sidebar-toggle" class="sidebar-toggle">
+                    <i class="fa-solid fa-bars"></i>
                 </button>
-                <div class="profile-menu" id="profile-menu">
-                    <div class="profile-menu-item">
-                        <i class="fa-solid fa-user"></i>
-                        <span>Profile Settings</span>
-                    </div>
-                    <div class="profile-menu-item" onclick="logout()">
-                        <i class="fa-solid fa-sign-out-alt"></i>
-                        <span>Logout</span>
+                <div class="header-title">
+                    <img src="https://www.nistglobal.com/icons/lifting&amp;rigging/Icon3.svg" alt="Logo"
+                        style="width: 40px; height: 40px; margin-right: 12px;">
+                    <span class="app-title">EduMetric – Intelligent Student Performance Analytics Using Machine
+                        Learning</span>
+                </div>
+            </div>
+            <div class="header-meta">
+                <button class="previous-plots-btn" onclick="showPreviousPlots()" title="View Previous Plots (Ctrl+P)">
+                    <i class="fa-solid fa-chart-line"></i>
+                    Previous Plots
+                </button>
+                <span id="total-stats"></span>
+                <div class="profile-dropdown">
+                    <button class="profile-btn" onclick="toggleProfile()">
+                        <i class="fa-solid fa-user-circle"></i>
+                        <span id="profile-name">Admin</span>
+                        <i class="fa-solid fa-chevron-down"></i>
+                    </button>
+                    <div class="profile-menu" id="profile-menu">
+                        <div class="profile-menu-item">
+                            <i class="fa-solid fa-user"></i>
+                            <span>Profile Settings</span>
+                        </div>
+                        <div class="profile-menu-item" onclick="logout()">
+                            <i class="fa-solid fa-sign-out-alt"></i>
+                            <span>Logout</span>
+                        </div>
                     </div>
                 </div>
             </div>
-        </div>
-    </header>
+        </header>
 
-    <!-- BODY -->
-    <div class="app-body">
+        <!-- BODY -->
+        <div class="app-body">
 
-        <!-- SIDEBAR -->
-        <aside class="sidebar" id="sidebar">
-            <div class="sidebar-section">
-                <button class="nav-btn active" data-mode="student">
-                    <i class="fa-solid fa-user-graduate"></i>
-                    <span>Student Analytics</span>
-                </button>
-                <button class="nav-btn" data-mode="department">
-                    <i class="fa-solid fa-building-columns"></i>
-                    <span>Department Analytics</span>
-                </button>
-                <button class="nav-btn" data-mode="year">
-                    <i class="fa-solid fa-calendar-days"></i>
-                    <span>Year-wise Analytics</span>
-                </button>
-                <button class="nav-btn" data-mode="batch-analytics">
-                    <i class="fa-solid fa-users-gear"></i>
-                    <span>Batch-wise Analytics</span>
-                </button>
-                <button class="nav-btn" data-mode="college">
-                    <i class="fa-solid fa-school"></i>
-                    <span>College Analytics</span>
-                </button>
-                <button class="nav-btn" data-mode="batch">
-                    <i class="fa-solid fa-cloud-arrow-up"></i>
-                    <span>Batch Upload</span>
-                </button>
-                <button class="nav-btn" data-mode="crud">
-                    <i class="fa-solid fa-database"></i>
-                    <span>CRUD for Students</span>
-                </button>
-                <!-- Chat assistant disabled for current release -->
-                <!-- <button class="nav-btn" data-mode="chat">
+            <!-- SIDEBAR -->
+            <aside class="sidebar" id="sidebar">
+                <div class="sidebar-section">
+                    <button class="nav-btn active" data-mode="student">
+                        <i class="fa-solid fa-user-graduate"></i>
+                        <span>Student Analytics</span>
+                    </button>
+                    <button class="nav-btn" data-mode="department">
+                        <i class="fa-solid fa-building-columns"></i>
+                        <span>Department Analytics</span>
+                    </button>
+                    <button class="nav-btn" data-mode="year">
+                        <i class="fa-solid fa-calendar-days"></i>
+                        <span>Year-wise Analytics</span>
+                    </button>
+
+                    <button class="nav-btn" data-mode="college">
+                        <i class="fa-solid fa-school"></i>
+                        <span>College Analytics</span>
+                    </button>
+                    <button class="nav-btn" data-mode="batch">
+                        <i class="fa-solid fa-cloud-arrow-up"></i>
+                        <span>Batch Upload</span>
+                    </button>
+                    <button class="nav-btn" data-mode="crud">
+                        <i class="fa-solid fa-database"></i>
+                        <span>CRUD for Students</span>
+                    </button>
+                    <!-- Chat assistant disabled for current release -->
+                    <!-- <button class="nav-btn" data-mode="chat">
                     <i class="fa-solid fa-comments"></i>
                     <span>AI Chat Assistant</span>
                 </button> -->
-            </div>
-        </aside>
+                </div>
+            </aside>
 
-        <!-- MINI SIDEBAR -->
-        <div class="mini-sidebar" id="mini-sidebar">
-            <button class="mini-nav-btn active" data-mode="student" title="Student Analytics">
-                <i class="fa-solid fa-user-graduate"></i>
-            </button>
-            <button class="mini-nav-btn" data-mode="department" title="Department Analytics">
-                <i class="fa-solid fa-building-columns"></i>
-            </button>
-            <button class="mini-nav-btn" data-mode="year" title="Year-wise Analytics">
-                <i class="fa-solid fa-calendar-days"></i>
-            </button>
-            <button class="mini-nav-btn" data-mode="batch-analytics" title="Batch-wise Analytics">
-                <i class="fa-solid fa-users-gear"></i>
-            </button>
-            <button class="mini-nav-btn" data-mode="college" title="College Analytics">
-                <i class="fa-solid fa-school"></i>
-            </button>
-            <button class="mini-nav-btn" data-mode="batch" title="Batch Upload">
-                <i class="fa-solid fa-cloud-arrow-up"></i>
-            </button>
-            <button class="mini-nav-btn" data-mode="crud" title="CRUD for Students">
-                <i class="fa-solid fa-database"></i>
-            </button>
-            <!-- Chat assistant disabled for current release -->
-            <!-- <button class="mini-nav-btn" data-mode="chat" title="AI Chat Assistant">
+            <!-- MINI SIDEBAR -->
+            <div class="mini-sidebar" id="mini-sidebar">
+                <button class="mini-nav-btn active" data-mode="student" title="Student Analytics">
+                    <i class="fa-solid fa-user-graduate"></i>
+                </button>
+                <button class="mini-nav-btn" data-mode="department" title="Department Analytics">
+                    <i class="fa-solid fa-building-columns"></i>
+                </button>
+                <button class="mini-nav-btn" data-mode="year" title="Year-wise Analytics">
+                    <i class="fa-solid fa-calendar-days"></i>
+                </button>
+
+                <button class="mini-nav-btn" data-mode="college" title="College Analytics">
+                    <i class="fa-solid fa-school"></i>
+                </button>
+                <button class="mini-nav-btn" data-mode="batch" title="Batch Upload">
+                    <i class="fa-solid fa-cloud-arrow-up"></i>
+                </button>
+                <button class="mini-nav-btn" data-mode="crud" title="CRUD for Students">
+                    <i class="fa-solid fa-database"></i>
+                </button>
+                <!-- Chat assistant disabled for current release -->
+                <!-- <button class="mini-nav-btn" data-mode="chat" title="AI Chat Assistant">
                 <i class="fa-solid fa-comments"></i>
             </button> -->
-        </div>
+            </div>
 
-        <!-- MAIN CONTENT -->
-        <main class="main-content">
+            <!-- MAIN CONTENT -->
+            <main class="main-content">
 
-            <!-- STUDENT MODE -->
-            <section id="mode-student" class="mode-section active fade-in">
+                <!-- STUDENT MODE -->
+                <section id="mode-student" class="mode-section active fade-in">
 
-                <!-- Toggle existing / new -->
-                <div class="mode-toggle card">
-                    <button id="btn-existing" class="pill-btn pill-active">Existing Student</button>
-                    <button id="btn-new" class="pill-btn">New Student</button>
-                </div>
-
-                <!-- Existing student form -->
-                <div id="existing-form" class="card form-card">
-                    <h2>Search Existing Student</h2>
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label>Register Number</label>
-                            <input id="s-rno" type="text" placeholder="Enter Register Number">
-
-                        </div>
-                        <div class="form-group">
-                            <label>Department</label>
-                            <select id="s-dept"></select>
-                        </div>
-                        <div class="form-group">
-                            <label>Year</label>
-                            <select id="s-year"></select>
-                        </div>
-                    </div>
-                    <button class="primary-btn" onclick="searchExistingStudent()">
-                        <i class="fa-solid fa-search"></i> Search & Analyse
-                    </button>
-                </div>
-
-                <!-- New student form -->
-                <div id="new-form" class="card form-card hidden">
-                    <h2>Add / Analyse New Student</h2>
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label>Name</label>
-                            <input id="n-name" placeholder="Student Name">
-                        </div>
-                        <div class="form-group">
-                            <label>Register Number</label>
-                            <input id="n-rno" placeholder="e.g., 21CS001">
-                        </div>
-                        <div class="form-group">
-                            <label>Department</label>
-                            <select id="n-dept"></select>
-                        </div>
+                    <!-- Toggle existing / new -->
+                    <div class="mode-toggle card">
+                        <button id="btn-existing" class="pill-btn pill-active">Existing Student</button>
+                        <button id="btn-new" class="pill-btn">New Student</button>
                     </div>
 
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label>Year</label>
-                            <select id="n-year"></select>
-                        </div>
-                        <div class="form-group">
-                            <label>Current Semester (1-8)</label>
-                            <input id="n-curr-sem" type="number" min="1" max="8" value="1">
-                        </div>
-                        <div class="form-group">
-                            <label>Behavior Score (0-10)</label>
-                            <input id="n-behavior" type="number" min="0" max="10" value="7">
-                        </div>
-                    </div>
+                    <!-- Existing student form -->
+                    <div id="existing-form" class="card form-card">
+                        <h2>Search Existing Student</h2>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Register Number</label>
+                                <input id="s-rno" type="text" placeholder="Enter Register Number">
 
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label>Internal Marks (0-30)</label>
-                            <input id="n-internal" type="number" min="0" max="30" value="20">
-                        </div>
-                        <div class="form-group">
-                            <label>Total Days (Current Sem)</label>
-                            <input id="n-total-days" type="number" min="0" value="90">
-                        </div>
-                        <div class="form-group">
-                            <label>Attended Days</label>
-                            <input id="n-attended-days" type="number" min="0" value="80">
-                        </div>
-                    </div>
-
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label>Previous Attendance %</label>
-                            <input id="n-prev-att" type="number" min="0" max="100" value="85">
-                        </div>
-                        <div class="form-group">
-                            <label>Mentor Email (optional)</label>
-                            <input id="n-mentor-email" type="email" placeholder="mentor@example.com">
-                        </div>
-                    </div>
-
-                    <div class="form-row">
-                        <div class="form-group full-width">
-                            <label>Semester Marks (SEM1–SEM8, empty if not yet)</label>
-                            <div class="sem-grid">
-                                <input id="n-sem1" placeholder="SEM1">
-                                <input id="n-sem2" placeholder="SEM2">
-                                <input id="n-sem3" placeholder="SEM3">
-                                <input id="n-sem4" placeholder="SEM4">
-                                <input id="n-sem5" placeholder="SEM5">
-                                <input id="n-sem6" placeholder="SEM6">
-                                <input id="n-sem7" placeholder="SEM7">
-                                <input id="n-sem8" placeholder="SEM8">
+                            </div>
+                            <div class="form-group">
+                                <label>Department</label>
+                                <select id="s-dept"></select>
+                            </div>
+                            <div class="form-group">
+                                <label>Year</label>
+                                <select id="s-year"></select>
                             </div>
                         </div>
+                        <button class="primary-btn" onclick="searchExistingStudent()">
+                            <i class="fa-solid fa-search"></i> Search & Analyse
+                        </button>
                     </div>
 
-                    <button class="primary-btn" onclick="analyseNewStudent()">
-                        <i class="fa-solid fa-chart-line"></i> Analyse New Student
-                    </button>
-                </div>
-
-                <!-- STUDENT REPORT -->
-                <div id="student-report" class="hidden">
-
-                    <!-- Info + KPIs -->
-                    <div class="card student-header">
-                        <div id="student-basic"></div>
-                        <div class="kpi-row kpi-big-row">
-                            <div id="kpi-performance" class="kpi-pill"></div>
-                            <div id="kpi-risk" class="kpi-pill"></div>
-                            <div id="kpi-dropout" class="kpi-pill"></div>
-                        </div>
-                    </div>
-
-                    <!-- Charts -->
-                    <div class="chart-grid">
-                        <div class="chart-card" id="st-chart-marks"></div>
-                        <div class="chart-card" id="st-chart-radar"></div>
-                        <div class="chart-card" id="st-chart-scores"></div>
-                        <div class="chart-card" id="st-chart-donut"></div>
-                        <div class="gauge-row">
-                            <div class="chart-card" id="st-chart-gauge-perf"></div>
-                            <div class="chart-card" id="st-chart-gauge-att"></div>
-                        </div>
-                    </div>
-
-                    <!-- Summary + Actions in ONE section -->
-                    <div class="bottom-layout">
-                        <div class="card summary-card">
-                            <h3>AI Summary, Suggestions & Actions</h3>
-                            <div id="st-summary-text"></div>
-                            <ul id="st-suggestions"></ul>
-
-                            <div class="action-buttons">
-                                <button class="secondary-btn" onclick="exportStudentCSV()">
-                                    <i class="fa-solid fa-download"></i> Export Data
-                                </button>
-                                <button id="alert-button" class="alert-btn hidden" onclick="triggerAlertEmail()">
-                                    <i class="fa-solid fa-paper-plane"></i> Send Alert
-                                </button>
-                                <button class="ghost-btn" onclick="resetStudentMode()">
-                                    <i class="fa-solid fa-arrow-rotate-left"></i> Predict Another
-                                </button>
+                    <!-- New student form -->
+                    <div id="new-form" class="card form-card hidden">
+                        <h2>Add / Analyse New Student</h2>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Name</label>
+                                <input id="n-name" placeholder="Student Name">
+                            </div>
+                            <div class="form-group">
+                                <label>Register Number</label>
+                                <input id="n-rno" placeholder="e.g., 21CS001">
+                            </div>
+                            <div class="form-group">
+                                <label>Department</label>
+                                <select id="n-dept"></select>
                             </div>
                         </div>
-                    </div>
 
-                </div>
-            </section>
-
-            <!-- DEPARTMENT MODE -->
-            <section id="mode-department" class="mode-section fade-in hidden">
-                <div class="card form-card">
-                    <h2>Department Analytics</h2>
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label>Department</label>
-                            <select id="d-dept"></select>
-                        </div>
-                        <div class="form-group">
-                            <label>Year Filter</label>
-                            <select id="d-year">
-                                <option value="all">All Years</option>
-                            </select>
-                        </div>
-                    </div>
-                    <button class="primary-btn" onclick="analyseDepartment()">
-                        <i class="fa-solid fa-chart-bar"></i> Analyse Department
-                    </button>
-                </div>
-
-                <div id="dept-report" class="hidden">
-                    <div class="card kpi-row kpi-row-wide">
-                        <div class="kpi-pill small" id="dept-kpi-total"></div>
-                        <div class="kpi-pill small" id="dept-kpi-high-perf"></div>
-                        <div class="kpi-pill small" id="dept-kpi-high-risk"></div>
-                        <div class="kpi-pill small" id="dept-kpi-high-drop"></div>
-                    </div>
-
-                    <div class="card table-card">
-                        <h3>Student Snapshot</h3>
-                        <div class="table-wrapper">
-                            <table id="dept-table">
-                                <thead>
-                                <tr>
-                                    <th>RNO</th><th>Name</th><th>Year</th><th>Sem</th>
-                                    <th>Perf</th><th>Risk</th><th>Dropout</th>
-                                    <th>Perf%</th><th>Risk%</th><th>Drop%</th><th>Actions</th>
-                                </tr>
-                                </thead>
-                                <tbody></tbody>
-                            </table>
-                        </div>
-                    </div>
-
-                    <div class="chart-grid">
-                        <div class="chart-card" id="dept-chart-perf-donut"></div>
-                        <div class="chart-card" id="dept-chart-risk-donut"></div>
-                        <div class="chart-card" id="dept-chart-drop-donut"></div>
-                        <div class="chart-card" id="dept-chart-3d"></div>
-                    </div>
-
-                    <div class="bottom-layout">
-                        <div class="card summary-card">
-                            <h3>Department Summary & Insights</h3>
-                            <div id="dept-summary"></div>
-                        </div>
-                        <div class="card actions-card">
-                            <h3>Exports</h3>
-                            <button class="secondary-btn" onclick="exportDeptCSV()">
-                                <i class="fa-solid fa-download"></i> Export Department
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </section>
-
-            <!-- YEAR MODE -->
-            <section id="mode-year" class="mode-section fade-in hidden">
-                <div class="card form-card">
-                    <h2>Year-wise Analytics</h2>
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label>Year</label>
-                            <select id="y-year"></select>
-                        </div>
-                    </div>
-                    <button class="primary-btn" onclick="analyseYear()">
-                        <i class="fa-solid fa-chart-area"></i> Analyse Year
-                    </button>
-                </div>
-
-                <div id="year-report" class="hidden">
-                    <div class="card kpi-row kpi-row-wide">
-                        <div class="kpi-pill small" id="year-kpi-total"></div>
-                        <div class="kpi-pill small" id="year-kpi-avg-perf"></div>
-                        <div class="kpi-pill small" id="year-kpi-high-risk"></div>
-                        <div class="kpi-pill small" id="year-kpi-high-drop"></div>
-                    </div>
-
-                    <div class="card table-card">
-                        <h3>Year Snapshot</h3>
-                        <div class="table-wrapper">
-                            <table id="year-table">
-                                <thead>
-                                <tr>
-                                    <th>RNO</th><th>Name</th><th>Dept</th><th>Sem</th>
-                                    <th>Perf</th><th>Risk</th><th>Dropout</th>
-                                    <th>Perf%</th><th>Risk%</th><th>Drop%</th><th>Actions</th>
-                                </tr>
-                                </thead>
-                                <tbody></tbody>
-                            </table>
-                        </div>
-                    </div>
-
-                    <div class="chart-grid">
-                        <div class="chart-card" id="year-chart-perf-donut"></div>
-                        <div class="chart-card" id="year-chart-scores"></div>
-                        <div class="chart-card" id="year-chart-3d"></div>
-                        <div class="chart-card" id="year-chart-hist"></div>
-                    </div>
-
-                    <div class="bottom-layout">
-                        <div class="card summary-card">
-                            <h3>Year Summary & Suggestions</h3>
-                            <div id="year-summary"></div>
-                        </div>
-                        <div class="card actions-card">
-                            <h3>Exports</h3>
-                            <button class="secondary-btn" onclick="exportYearCSV()">
-                                <i class="fa-solid fa-download"></i> Export Year
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </section>
-
-            <!-- COLLEGE MODE -->
-            <section id="mode-college" class="mode-section fade-in hidden">
-                <div class="card form-card">
-                    <h2>Total College Analytics</h2>
-                    <p class="small-text">
-                        We sample up to 500 students for faster 3D analytics.
-                    </p>
-                    <button class="primary-btn" onclick="analyseCollege()">
-                        <i class="fa-solid fa-chart-pie"></i> Analyse College
-                    </button>
-                </div>
-
-                <div id="college-report" class="hidden">
-                    <div class="card kpi-row kpi-row-wide">
-                        <div class="kpi-pill small" id="clg-kpi-total"></div>
-                        <div class="kpi-pill small" id="clg-kpi-avg-perf"></div>
-                        <div class="kpi-pill small" id="clg-kpi-high-risk"></div>
-                        <div class="kpi-pill small" id="clg-kpi-high-drop"></div>
-                    </div>
-
-                    <div class="card table-card">
-                        <h3>Sample Snapshot (max 500)</h3>
-                        <div class="table-wrapper">
-                            <table id="clg-table">
-                                <thead>
-                                <tr>
-                                    <th>RNO</th><th>Name</th><th>Dept</th><th>Year</th><th>Sem</th>
-                                    <th>Perf</th><th>Risk</th><th>Drop</th>
-                                    <th>Perf%</th><th>Risk%</th><th>Drop%</th><th>Actions</th>
-                                </tr>
-                                </thead>
-                                <tbody></tbody>
-                            </table>
-                        </div>
-                    </div>
-
-                    <div class="chart-grid">
-                        <div class="chart-card" id="clg-chart-perf-donut"></div>
-                        <div class="chart-card" id="clg-chart-risk-donut"></div>
-                        <div class="chart-card" id="clg-chart-3d"></div>
-                        <div class="chart-card" id="clg-chart-box"></div>
-                    </div>
-
-                    <div class="bottom-layout">
-                        <div class="card summary-card">
-                            <h3>College Summary & High-level Insights</h3>
-                            <div id="clg-summary"></div>
-                        </div>
-                        <div class="card actions-card">
-                            <h3>Exports</h3>
-                            <button class="secondary-btn" onclick="exportCollegeCSV()">
-                                <i class="fa-solid fa-download"></i> Export College
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </section>
-
-
-
-            <!-- BATCH UPLOAD MODE -->
-            <section id="mode-batch" class="mode-section fade-in hidden">
-                <div class="card form-card">
-                    <h2>Batch Upload & Smart Auto-Analytics</h2>
-                    
-                    <!-- Mode Toggle Buttons -->
-                    <div class="batch-mode-toggle">
-                        <button id="btn-normalize" class="batch-toggle-btn active" onclick="switchBatchMode('normalize')">
-                            <i class="fa-solid fa-cogs"></i> Normalize Data
-                        </button>
-                        <button id="btn-analytics" class="batch-toggle-btn" onclick="switchBatchMode('analytics')">
-                            <i class="fa-solid fa-chart-line"></i> Analytics
-                        </button>
-                    </div>
-
-                    <!-- Normalize Mode Content -->
-                    <div id="normalize-content" class="batch-content">
-                        <p class="small-text">
-                            Upload RAW DS1-style dataset. System will normalize, compute features, generate predictions, and create DS3 analytics-ready dataset.
-                        </p>
-                        
-                        <div class="upload-area" id="upload-area-normalize">
-                            <i class="fa-solid fa-cloud-arrow-up" style="font-size: 48px; color: #1976d2; margin-bottom: 16px;"></i>
-                            <p style="font-size: 16px; font-weight: 600; margin: 8px 0;">Drag & Drop RAW CSV/XLSX File Here</p>
-                            <p style="font-size: 13px; color: #666; margin: 4px 0;">Expected format: S.NO, NAME, RNO, EMAIL, DEPT, YEAR, CURR_SEM, SEM1-SEM8, etc.</p>
-                            <input type="file" id="batch-file-normalize" accept=".csv,.xlsx" style="display: none;">
-                            <button class="secondary-btn" onclick="document.getElementById('batch-file-normalize').click()" style="margin-top: 12px;">
-                                <i class="fa-solid fa-folder-open"></i> Browse Files
-                            </button>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Year</label>
+                                <select id="n-year"></select>
+                            </div>
+                            <div class="form-group">
+                                <label>Current Semester (1-8)</label>
+                                <input id="n-curr-sem" type="number" min="1" max="8" value="1">
+                            </div>
+                            <div class="form-group">
+                                <label>Behavior Score (0-10)</label>
+                                <input id="n-behavior" type="number" min="0" max="10" value="7">
+                            </div>
                         </div>
 
-                        <div id="upload-status-normalize" class="hidden" style="margin-top: 16px; padding: 12px; border-radius: 10px; background: #e3f2fd; color: #0d47a1; font-size: 14px;">
-                            <i class="fa-solid fa-circle-info"></i> <span id="status-text-normalize"></span>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Internal Marks (0-30)</label>
+                                <input id="n-internal" type="number" min="0" max="30" value="20">
+                            </div>
+                            <div class="form-group">
+                                <label>Total Days (Current Sem)</label>
+                                <input id="n-total-days" type="number" min="0" value="90">
+                            </div>
+                            <div class="form-group">
+                                <label>Attended Days</label>
+                                <input id="n-attended-days" type="number" min="0" value="80">
+                            </div>
                         </div>
 
-                        <button class="primary-btn" id="upload-btn-normalize" onclick="uploadBatchFile('normalize')" disabled style="margin-top: 16px;">
-                            <i class="fa-solid fa-upload"></i> Normalize & Process
-                        </button>
-                    </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Previous Attendance %</label>
+                                <input id="n-prev-att" type="number" min="0" max="100" value="85">
+                            </div>
+                            <div class="form-group">
+                                <label>Mentor Email (optional)</label>
+                                <input id="n-mentor-email" type="email" placeholder="mentor@example.com">
+                            </div>
+                        </div>
 
-                    <!-- Analytics Mode Content -->
-                    <div id="analytics-content" class="batch-content hidden">
-                        <p class="small-text">
-                            View and analyze all students from the DS3 master dataset. All normalized data with predictions available for analytics.
-                        </p>
-                        
-                        <div class="analytics-dashboard">
-                            <button class="primary-btn" onclick="loadAnalyticsDashboard()" style="margin-bottom: 20px;">
-                                <i class="fa-solid fa-chart-bar"></i> Load Analytics Dashboard
-                            </button>
-                            
-                            <div id="analytics-preview" class="hidden">
-                                <div class="kpi-row">
-                                    <div class="kpi-pill" id="analytics-total-students"></div>
-                                    <div class="kpi-pill" id="analytics-high-risk"></div>
-                                    <div class="kpi-pill" id="analytics-high-dropout"></div>
+                        <div class="form-row">
+                            <div class="form-group full-width">
+                                <label>Semester Marks (SEM1–SEM8, empty if not yet)</label>
+                                <div class="sem-grid">
+                                    <input id="n-sem1" placeholder="SEM1">
+                                    <input id="n-sem2" placeholder="SEM2">
+                                    <input id="n-sem3" placeholder="SEM3">
+                                    <input id="n-sem4" placeholder="SEM4">
+                                    <input id="n-sem5" placeholder="SEM5">
+                                    <input id="n-sem6" placeholder="SEM6">
+                                    <input id="n-sem7" placeholder="SEM7">
+                                    <input id="n-sem8" placeholder="SEM8">
                                 </div>
-                                
-                                <div class="card table-card" style="margin-top: 20px;">
-                                    <h3>Student Analytics Preview</h3>
-                                    <div class="table-wrapper">
-                                        <table id="analytics-table">
-                                            <thead>
-                                                <tr>
-                                                    <th>RNO</th><th>Name</th><th>Dept</th><th>Year</th>
-                                                    <th>Performance</th><th>Risk</th><th>Dropout</th>
-                                                    <th>Actions</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody></tbody>
-                                        </table>
+                            </div>
+                        </div>
+
+                        <button class="primary-btn" onclick="analyseNewStudent()">
+                            <i class="fa-solid fa-chart-line"></i> Analyse New Student
+                        </button>
+                    </div>
+
+                    <!-- STUDENT REPORT -->
+                    <div id="student-report" class="hidden">
+
+                        <!-- Info + KPIs -->
+                        <div class="card student-header">
+                            <div id="student-basic"></div>
+                            <div class="kpi-row kpi-big-row">
+                                <div id="kpi-performance" class="kpi-pill"></div>
+                                <div id="kpi-risk" class="kpi-pill"></div>
+                                <div id="kpi-dropout" class="kpi-pill"></div>
+                            </div>
+                        </div>
+
+                        <!-- Charts -->
+                        <div class="chart-grid">
+                            <div class="chart-card" id="st-chart-marks"></div>
+                            <div class="chart-card" id="st-chart-radar"></div>
+                            <div class="chart-card" id="st-chart-scores"></div>
+                            <div class="chart-card" id="st-chart-donut"></div>
+                            <div class="gauge-row">
+                                <div class="chart-card" id="st-chart-gauge-perf"></div>
+                                <div class="chart-card" id="st-chart-gauge-att"></div>
+                            </div>
+                        </div>
+
+                        <!-- Summary + Actions in ONE section -->
+                        <div class="bottom-layout">
+                            <div class="card summary-card">
+                                <h3>AI Summary, Suggestions & Actions</h3>
+                                <div id="st-summary-text"></div>
+                                <ul id="st-suggestions"></ul>
+
+                                <div class="action-buttons">
+                                    <button class="secondary-btn" onclick="exportStudentCSV()">
+                                        <i class="fa-solid fa-download"></i> Export Data
+                                    </button>
+                                    <button id="alert-button" class="alert-btn hidden" onclick="triggerAlertEmail()">
+                                        <i class="fa-solid fa-paper-plane"></i> Send Alert
+                                    </button>
+                                    <button class="ghost-btn" onclick="resetStudentMode()">
+                                        <i class="fa-solid fa-arrow-rotate-left"></i> Predict Another
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+                </section>
+
+                <!-- DEPARTMENT MODE -->
+                <section id="mode-department" class="mode-section fade-in hidden">
+                    <div class="card form-card">
+                        <h2>Department Analytics</h2>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Department</label>
+                                <select id="d-dept"></select>
+                            </div>
+                            <div class="form-group">
+                                <label>Year Filter</label>
+                                <select id="d-year">
+                                    <option value="all">All Years</option>
+                                </select>
+                            </div>
+                        </div>
+                        <button class="primary-btn" onclick="analyseDepartment()">
+                            <i class="fa-solid fa-chart-bar"></i> Analyse Department
+                        </button>
+                    </div>
+
+                    <div id="dept-report" class="hidden">
+                        <div class="card kpi-row kpi-row-wide">
+                            <div class="kpi-pill small" id="dept-kpi-total"></div>
+                            <div class="kpi-pill small" id="dept-kpi-high-perf"></div>
+                            <div class="kpi-pill small" id="dept-kpi-high-risk"></div>
+                            <div class="kpi-pill small" id="dept-kpi-high-drop"></div>
+                        </div>
+
+                        <div class="card table-card">
+                            <h3>Student Snapshot</h3>
+                            <div class="table-wrapper">
+                                <table id="dept-table">
+                                    <thead>
+                                        <tr>
+                                            <th>RNO</th>
+                                            <th>Name</th>
+                                            <th>Year</th>
+                                            <th>Sem</th>
+                                            <th>Perf</th>
+                                            <th>Risk</th>
+                                            <th>Dropout</th>
+                                            <th>Perf%</th>
+                                            <th>Risk%</th>
+                                            <th>Drop%</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody></tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <div class="chart-grid">
+                            <div class="chart-card" id="dept-chart-perf-donut"></div>
+                            <div class="chart-card" id="dept-chart-risk-donut"></div>
+                            <div class="chart-card" id="dept-chart-drop-donut"></div>
+                            <div class="chart-card" id="dept-chart-3d"></div>
+                        </div>
+
+                        <div class="bottom-layout">
+                            <div class="card summary-card">
+                                <h3>Department Summary & Insights</h3>
+                                <div id="dept-summary"></div>
+                            </div>
+                            <div class="card actions-card">
+                                <h3>Exports</h3>
+                                <button class="secondary-btn" onclick="exportDeptCSV()">
+                                    <i class="fa-solid fa-download"></i> Export Department
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- YEAR MODE -->
+                <section id="mode-year" class="mode-section fade-in hidden">
+                    <div class="card form-card">
+                        <h2>Year-wise Analytics</h2>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Year</label>
+                                <select id="y-year"></select>
+                            </div>
+                        </div>
+                        <button class="primary-btn" onclick="analyseYear()">
+                            <i class="fa-solid fa-chart-area"></i> Analyse Year
+                        </button>
+                    </div>
+
+                    <div id="year-report" class="hidden">
+                        <div class="card kpi-row kpi-row-wide">
+                            <div class="kpi-pill small" id="year-kpi-total"></div>
+                            <div class="kpi-pill small" id="year-kpi-avg-perf"></div>
+                            <div class="kpi-pill small" id="year-kpi-high-risk"></div>
+                            <div class="kpi-pill small" id="year-kpi-high-drop"></div>
+                        </div>
+
+                        <!-- NEW: Ranking Grid -->
+                        <div class="ranking-grid"
+                            style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px;">
+                            <div class="chart-card" id="year-rank-top"></div>
+                            <div class="chart-card" id="year-rank-risk"></div>
+                        </div>
+                        <div class="card table-card">
+                            <h3>Year Snapshot</h3>
+                            <div class="table-wrapper">
+                                <table id="year-table">
+                                    <thead>
+                                        <tr>
+                                            <th>RNO</th>
+                                            <th>Name</th>
+                                            <th>Dept</th>
+                                            <th>Sem</th>
+                                            <th>Perf</th>
+                                            <th>Risk</th>
+                                            <th>Dropout</th>
+                                            <th>Perf%</th>
+                                            <th>Risk%</th>
+                                            <th>Drop%</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody></tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <div class="chart-grid">
+                            <div class="chart-card" id="year-chart-perf-donut"></div>
+                            <div class="chart-card" id="year-chart-scores"></div>
+                            <div class="chart-card" id="year-chart-3d"></div>
+                            <div class="chart-card" id="year-chart-hist"></div>
+                        </div>
+
+                        <div class="bottom-layout">
+                            <div class="card summary-card">
+                                <h3>Year Summary & Suggestions</h3>
+                                <div id="year-summary"></div>
+                            </div>
+                            <div class="card actions-card">
+                                <h3>Exports</h3>
+                                <button class="secondary-btn" onclick="exportYearCSV()">
+                                    <i class="fa-solid fa-download"></i> Export Year
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- COLLEGE MODE -->
+                <section id="mode-college" class="mode-section fade-in hidden">
+                    <div class="card form-card">
+                        <h2>Total College Analytics</h2>
+                        <p class="small-text">
+                            We sample up to 500 students for faster 3D analytics.
+                        </p>
+                        <button class="primary-btn" onclick="analyseCollege()">
+                            <i class="fa-solid fa-chart-pie"></i> Analyse College
+                        </button>
+                    </div>
+
+                    <div id="college-report" class="hidden">
+                        <div class="card kpi-row kpi-row-wide">
+                            <div class="kpi-pill small" id="clg-kpi-total"></div>
+                            <div class="kpi-pill small" id="clg-kpi-avg-perf"></div>
+                            <div class="kpi-pill small" id="clg-kpi-high-risk"></div>
+                            <div class="kpi-pill small" id="clg-kpi-high-drop"></div>
+                        </div>
+
+                        <div class="card table-card">
+                            <h3>Sample Snapshot (max 500)</h3>
+                            <div class="table-wrapper">
+                                <table id="clg-table">
+                                    <thead>
+                                        <tr>
+                                            <th>RNO</th>
+                                            <th>Name</th>
+                                            <th>Dept</th>
+                                            <th>Year</th>
+                                            <th>Sem</th>
+                                            <th>Perf</th>
+                                            <th>Risk</th>
+                                            <th>Drop</th>
+                                            <th>Perf%</th>
+                                            <th>Risk%</th>
+                                            <th>Drop%</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody></tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <div class="chart-grid">
+                            <div class="chart-card" id="clg-chart-perf-donut"></div>
+                            <div class="chart-card" id="clg-chart-risk-donut"></div>
+                            <div class="chart-card" id="clg-chart-3d"></div>
+                            <div class="chart-card" id="clg-chart-box"></div>
+                        </div>
+
+                        <div class="bottom-layout">
+                            <div class="card summary-card">
+                                <h3>College Summary & High-level Insights</h3>
+                                <div id="clg-summary"></div>
+                            </div>
+                            <div class="card actions-card">
+                                <h3>Exports</h3>
+                                <button class="secondary-btn" onclick="exportCollegeCSV()">
+                                    <i class="fa-solid fa-download"></i> Export College
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+
+
+                <!-- BATCH UPLOAD MODE -->
+                <section id="mode-batch" class="mode-section fade-in hidden">
+                    <div class="card form-card">
+                        <h2>Batch Upload & Smart Auto-Analytics</h2>
+
+                        <!-- Mode Toggle Buttons -->
+                        <div class="batch-mode-toggle">
+                            <button id="btn-normalize" class="batch-toggle-btn active"
+                                onclick="switchBatchMode('normalize')">
+                                <i class="fa-solid fa-cogs"></i> Normalize Data
+                            </button>
+                            <button id="btn-analytics" class="batch-toggle-btn" onclick="switchBatchMode('analytics')">
+                                <i class="fa-solid fa-chart-line"></i> Analytics
+                            </button>
+                        </div>
+
+                        <!-- Normalize Mode Content -->
+                        <div id="normalize-content" class="batch-content">
+                            <p class="small-text">
+                                Upload RAW DS1-style dataset. System will normalize, compute features, generate
+                                predictions, and create DS3 analytics-ready dataset.
+                            </p>
+
+                            <div class="upload-area" id="upload-area-normalize">
+                                <i class="fa-solid fa-cloud-arrow-up"
+                                    style="font-size: 48px; color: #1976d2; margin-bottom: 16px;"></i>
+                                <p style="font-size: 16px; font-weight: 600; margin: 8px 0;">Drag & Drop RAW CSV/XLSX
+                                    File Here</p>
+                                <p style="font-size: 13px; color: #666; margin: 4px 0;">Expected format: S.NO, NAME,
+                                    RNO, EMAIL, DEPT, YEAR, CURR_SEM, SEM1-SEM8, etc.</p>
+                                <input type="file" id="batch-file-normalize" accept=".csv,.xlsx" style="display: none;">
+                                <button class="secondary-btn"
+                                    onclick="document.getElementById('batch-file-normalize').click()"
+                                    style="margin-top: 12px;">
+                                    <i class="fa-solid fa-folder-open"></i> Browse Files
+                                </button>
+                            </div>
+
+                            <div id="upload-status-normalize" class="hidden"
+                                style="margin-top: 16px; padding: 12px; border-radius: 10px; background: #e3f2fd; color: #0d47a1; font-size: 14px;">
+                                <i class="fa-solid fa-circle-info"></i> <span id="status-text-normalize"></span>
+                            </div>
+
+                            <button class="primary-btn" id="upload-btn-normalize" onclick="uploadBatchFile('normalize')"
+                                disabled style="margin-top: 16px;">
+                                <i class="fa-solid fa-upload"></i> Normalize & Process
+                            </button>
+                        </div>
+
+                        <!-- Analytics Mode Content -->
+                        <div id="analytics-content" class="batch-content hidden">
+                            <p class="small-text">
+                                View and analyze all students from the DS3 master dataset. All normalized data with
+                                predictions available for analytics.
+                            </p>
+
+                            <div class="analytics-dashboard">
+                                <button class="primary-btn" onclick="loadAnalyticsDashboard()"
+                                    style="margin-bottom: 20px;">
+                                    <i class="fa-solid fa-chart-bar"></i> Load Analytics Dashboard
+                                </button>
+
+                                <div id="analytics-preview" class="hidden">
+                                    <div class="kpi-row">
+                                        <div class="kpi-pill" id="analytics-total-students"></div>
+                                        <div class="kpi-pill" id="analytics-high-risk"></div>
+                                        <div class="kpi-pill" id="analytics-high-dropout"></div>
+                                    </div>
+
+                                    <div class="card table-card" style="margin-top: 20px;">
+                                        <h3>Student Analytics Preview</h3>
+                                        <div class="table-wrapper">
+                                            <table id="analytics-table">
+                                                <thead>
+                                                    <tr>
+                                                        <th>RNO</th>
+                                                        <th>Name</th>
+                                                        <th>Dept</th>
+                                                        <th>Year</th>
+                                                        <th>Performance</th>
+                                                        <th>Risk</th>
+                                                        <th>Dropout</th>
+                                                        <th>Actions</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody></tbody>
+                                            </table>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
                         </div>
                     </div>
-                </div>
 
-                <div id="batch-result" class="card hidden" style="margin-top: 20px;">
-                    <h3>Processing Results</h3>
-                    <div class="kpi-row">
-                        <div class="kpi-pill" id="batch-processed-count"></div>
-                        <div class="kpi-pill" id="batch-total-count"></div>
-                        <div class="kpi-pill" id="batch-alerts-sent"></div>
-                    </div>
-                    <div id="batch-message" style="margin-top: 16px; color: #00897b; font-weight: 600;">
-                        <i class="fa-solid fa-circle-check"></i> <span id="batch-message-text">Processing completed successfully!</span>
-                    </div>
-                    <button class="secondary-btn" onclick="showAnalyticsAfterNormalize()" style="margin-top: 16px;">
-                        <i class="fa-solid fa-chart-line"></i> Make Analytics Now
-                    </button>
-                </div>
-            </section>
-
-            <!-- CRUD MODE -->
-            <section id="mode-crud" class="mode-section fade-in hidden">
-                <div class="card form-card">
-                    <h2>CRUD Operations for Students</h2>
-                    
-                    <!-- CRUD Operation Toggle -->
-                    <div class="crud-mode-toggle">
-                        <button id="btn-create" class="crud-toggle-btn active" onclick="switchCrudMode('create')">
-                            <i class="fa-solid fa-plus"></i> Create
-                        </button>
-                        <button id="btn-read" class="crud-toggle-btn" onclick="switchCrudMode('read')">
-                            <i class="fa-solid fa-search"></i> Read
-                        </button>
-                        <button id="btn-update" class="crud-toggle-btn" onclick="switchCrudMode('update')">
-                            <i class="fa-solid fa-edit"></i> Update
-                        </button>
-                        <button id="btn-delete" class="crud-toggle-btn" onclick="switchCrudMode('delete')">
-                            <i class="fa-solid fa-trash"></i> Delete
+                    <div id="batch-result" class="card hidden" style="margin-top: 20px;">
+                        <h3>Processing Results</h3>
+                        <div class="kpi-row">
+                            <div class="kpi-pill" id="batch-processed-count"></div>
+                            <div class="kpi-pill" id="batch-total-count"></div>
+                            <div class="kpi-pill" id="batch-alerts-sent"></div>
+                        </div>
+                        <div id="batch-message" style="margin-top: 16px; color: #00897b; font-weight: 600;">
+                            <i class="fa-solid fa-circle-check"></i> <span id="batch-message-text">Processing completed
+                                successfully!</span>
+                        </div>
+                        <button class="secondary-btn" onclick="showAnalyticsAfterNormalize()" style="margin-top: 16px;">
+                            <i class="fa-solid fa-chart-line"></i> Make Analytics Now
                         </button>
                     </div>
+                </section>
 
-                    <!-- CREATE STUDENT -->
-                    <div id="crud-create" class="crud-content">
-                        <h3>Create New Student</h3>
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label>Name *</label>
-                                <input id="create-name" placeholder="Student Full Name" required>
-                            </div>
-                            <div class="form-group">
-                                <label>Register Number *</label>
-                                <input id="create-rno" placeholder="e.g., 23G31A1001" required>
-                            </div>
-                            <div class="form-group">
-                                <label>Email *</label>
-                                <input id="create-email" type="email" placeholder="student@example.com" required>
-                            </div>
-                        </div>
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label>Department *</label>
-                                <select id="create-dept" required>
-                                    <option value="">Select Department</option>
-                                    <option value="CSE">CSE</option>
-                                    <option value="ECE">ECE</option>
-                                    <option value="MECH">MECH</option>
-                                    <option value="CIVIL">CIVIL</option>
-                                    <option value="EEE">EEE</option>
-                                    <option value="CSE(AI)">CSE(AI)</option>
-                                    <option value="CDS">CDS</option>
-                                    <option value="IT">IT</option>
-                                </select>
-                            </div>
-                            <div class="form-group">
-                                <label>Year *</label>
-                                <select id="create-year" required>
-                                    <option value="">Select Year</option>
-                                    <option value="1">1st Year</option>
-                                    <option value="2">2nd Year</option>
-                                    <option value="3">3rd Year</option>
-                                    <option value="4">4th Year</option>
-                                </select>
-                            </div>
-                            <div class="form-group">
-                                <label>Current Semester *</label>
-                                <select id="create-sem" required>
-                                    <option value="">Select Semester</option>
-                                    <option value="1">1</option>
-                                    <option value="2">2</option>
-                                    <option value="3">3</option>
-                                    <option value="4">4</option>
-                                    <option value="5">5</option>
-                                    <option value="6">6</option>
-                                    <option value="7">7</option>
-                                    <option value="8">8</option>
-                                </select>
-                            </div>
-                        </div>
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label>Mentor Name</label>
-                                <input id="create-mentor" placeholder="Dr. Mentor Name">
-                            </div>
-                            <div class="form-group">
-                                <label>Mentor Email</label>
-                                <input id="create-mentor-email" type="email" placeholder="mentor@college.edu">
-                            </div>
-                        </div>
-                        <div class="form-row">
-                            <div class="form-group full-width">
-                                <label>Semester Marks (Leave empty if not completed)</label>
-                                <div class="sem-grid">
-                                    <input id="create-sem1" placeholder="SEM1" type="number" min="0" max="100">
-                                    <input id="create-sem2" placeholder="SEM2" type="number" min="0" max="100">
-                                    <input id="create-sem3" placeholder="SEM3" type="number" min="0" max="100">
-                                    <input id="create-sem4" placeholder="SEM4" type="number" min="0" max="100">
-                                    <input id="create-sem5" placeholder="SEM5" type="number" min="0" max="100">
-                                    <input id="create-sem6" placeholder="SEM6" type="number" min="0" max="100">
-                                    <input id="create-sem7" placeholder="SEM7" type="number" min="0" max="100">
-                                    <input id="create-sem8" placeholder="SEM8" type="number" min="0" max="100">
-                                </div>
-                            </div>
-                        </div>
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label>Internal Marks (0-30)</label>
-                                <input id="create-internal" type="number" min="0" max="30" value="20">
-                            </div>
-                            <div class="form-group">
-                                <label>Total Days (Current Sem)</label>
-                                <input id="create-total-days" type="number" min="0" value="90">
-                            </div>
-                            <div class="form-group">
-                                <label>Attended Days</label>
-                                <input id="create-attended-days" type="number" min="0" value="80">
-                            </div>
-                        </div>
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label>Previous Attendance %</label>
-                                <input id="create-prev-att" type="number" min="0" max="100" value="85">
-                            </div>
-                            <div class="form-group">
-                                <label>Behavior Score (0-10)</label>
-                                <input id="create-behavior" type="number" min="0" max="10" value="7">
-                            </div>
-                        </div>
-                        <button class="primary-btn" onclick="createStudent()">
-                            <i class="fa-solid fa-plus"></i> Create Student
-                        </button>
-                    </div>
+                <!-- CRUD MODE -->
+                <section id="mode-crud" class="mode-section fade-in hidden">
+                    <div class="card form-card">
+                        <h2>CRUD Operations for Students</h2>
 
-                    <!-- READ STUDENT -->
-                    <div id="crud-read" class="crud-content hidden">
-                        <h3>Search & Read Student Details</h3>
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label>Search by Register Number</label>
-                                <input id="read-rno" placeholder="Enter Register Number">
-                            </div>
-                            <div class="form-group">
-                                <label>Or Search by Name</label>
-                                <input id="read-name" placeholder="Enter Student Name">
-                            </div>
+                        <!-- CRUD Operation Toggle -->
+                        <div class="crud-mode-toggle">
+                            <button id="btn-create" class="crud-toggle-btn active" onclick="switchCrudMode('create')">
+                                <i class="fa-solid fa-plus"></i> Create
+                            </button>
+                            <button id="btn-read" class="crud-toggle-btn" onclick="switchCrudMode('read')">
+                                <i class="fa-solid fa-search"></i> Read
+                            </button>
+                            <button id="btn-update" class="crud-toggle-btn" onclick="switchCrudMode('update')">
+                                <i class="fa-solid fa-edit"></i> Update
+                            </button>
+                            <button id="btn-delete" class="crud-toggle-btn" onclick="switchCrudMode('delete')">
+                                <i class="fa-solid fa-trash"></i> Delete
+                            </button>
                         </div>
-                        <button class="primary-btn" onclick="readStudent()">
-                            <i class="fa-solid fa-search"></i> Search Student
-                        </button>
-                        
-                        <div id="read-results" class="hidden" style="margin-top: 20px;">
-                            <div class="card">
-                                <h4>Search Results</h4>
-                                <div class="table-wrapper">
-                                    <table id="read-table">
-                                        <thead>
-                                            <tr>
-                                                <th>RNO</th><th>Name</th><th>Dept</th><th>Year</th><th>Sem</th>
-                                                <th>Performance</th><th>Risk</th><th>Dropout</th>
-                                                <th>Actions</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody></tbody>
-                                    </table>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
 
-                    <!-- UPDATE STUDENT -->
-                    <div id="crud-update" class="crud-content hidden">
-                        <h3>Update Student Details</h3>
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label>Register Number *</label>
-                                <input id="update-search-rno" placeholder="Enter Register Number to Update">
-                            </div>
-                            <div class="form-group">
-                                <button class="secondary-btn" onclick="fetchStudentForUpdate()">
-                                    <i class="fa-solid fa-search"></i> Fetch Details
-                                </button>
-                            </div>
-                        </div>
-                        
-                        <div id="update-form" class="hidden">
+                        <!-- CREATE STUDENT -->
+                        <div id="crud-create" class="crud-content">
+                            <h3>Create New Student</h3>
                             <div class="form-row">
                                 <div class="form-group">
-                                    <label>Name</label>
-                                    <input id="update-name" placeholder="Student Name">
+                                    <label>Name *</label>
+                                    <input id="create-name" placeholder="Student Full Name" required>
                                 </div>
                                 <div class="form-group">
-                                    <label>Email</label>
-                                    <input id="update-email" type="email" placeholder="student@example.com">
+                                    <label>Register Number *</label>
+                                    <input id="create-rno" placeholder="e.g., 23G31A1001" required>
                                 </div>
                                 <div class="form-group">
-                                    <label>Department</label>
-                                    <select id="update-dept">
+                                    <label>Email *</label>
+                                    <input id="create-email" type="email" placeholder="student@example.com" required>
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>Department *</label>
+                                    <select id="create-dept" required>
+                                        <option value="">Select Department</option>
                                         <option value="CSE">CSE</option>
                                         <option value="ECE">ECE</option>
                                         <option value="MECH">MECH</option>
@@ -1101,11 +944,10 @@
                                         <option value="IT">IT</option>
                                     </select>
                                 </div>
-                            </div>
-                            <div class="form-row">
                                 <div class="form-group">
-                                    <label>Year</label>
-                                    <select id="update-year">
+                                    <label>Year *</label>
+                                    <select id="create-year" required>
+                                        <option value="">Select Year</option>
                                         <option value="1">1st Year</option>
                                         <option value="2">2nd Year</option>
                                         <option value="3">3rd Year</option>
@@ -1113,8 +955,9 @@
                                     </select>
                                 </div>
                                 <div class="form-group">
-                                    <label>Current Semester</label>
-                                    <select id="update-sem">
+                                    <label>Current Semester *</label>
+                                    <select id="create-sem" required>
+                                        <option value="">Select Semester</option>
                                         <option value="1">1</option>
                                         <option value="2">2</option>
                                         <option value="3">3</option>
@@ -1125,125 +968,243 @@
                                         <option value="8">8</option>
                                     </select>
                                 </div>
+                            </div>
+                            <div class="form-row">
                                 <div class="form-group">
-                                    <label>Internal Marks (0-30)</label>
-                                    <input id="update-internal" type="number" min="0" max="30">
+                                    <label>Mentor Name</label>
+                                    <input id="create-mentor" placeholder="Dr. Mentor Name">
+                                </div>
+                                <div class="form-group">
+                                    <label>Mentor Email</label>
+                                    <input id="create-mentor-email" type="email" placeholder="mentor@college.edu">
                                 </div>
                             </div>
                             <div class="form-row">
                                 <div class="form-group full-width">
-                                    <label>Semester Marks</label>
+                                    <label>Semester Marks (Leave empty if not completed)</label>
                                     <div class="sem-grid">
-                                        <input id="update-sem1" placeholder="SEM1" type="number" min="0" max="100">
-                                        <input id="update-sem2" placeholder="SEM2" type="number" min="0" max="100">
-                                        <input id="update-sem3" placeholder="SEM3" type="number" min="0" max="100">
-                                        <input id="update-sem4" placeholder="SEM4" type="number" min="0" max="100">
-                                        <input id="update-sem5" placeholder="SEM5" type="number" min="0" max="100">
-                                        <input id="update-sem6" placeholder="SEM6" type="number" min="0" max="100">
-                                        <input id="update-sem7" placeholder="SEM7" type="number" min="0" max="100">
-                                        <input id="update-sem8" placeholder="SEM8" type="number" min="0" max="100">
+                                        <input id="create-sem1" placeholder="SEM1" type="number" min="0" max="100">
+                                        <input id="create-sem2" placeholder="SEM2" type="number" min="0" max="100">
+                                        <input id="create-sem3" placeholder="SEM3" type="number" min="0" max="100">
+                                        <input id="create-sem4" placeholder="SEM4" type="number" min="0" max="100">
+                                        <input id="create-sem5" placeholder="SEM5" type="number" min="0" max="100">
+                                        <input id="create-sem6" placeholder="SEM6" type="number" min="0" max="100">
+                                        <input id="create-sem7" placeholder="SEM7" type="number" min="0" max="100">
+                                        <input id="create-sem8" placeholder="SEM8" type="number" min="0" max="100">
                                     </div>
                                 </div>
                             </div>
-                            <div class="action-buttons">
-                                <button class="primary-btn" onclick="updateStudent()">
-                                    <i class="fa-solid fa-save"></i> Update Student
-                                </button>
-                                <button class="ghost-btn" onclick="cancelUpdate()">
-                                    <i class="fa-solid fa-times"></i> Cancel
-                                </button>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>Internal Marks (0-30)</label>
+                                    <input id="create-internal" type="number" min="0" max="30" value="20">
+                                </div>
+                                <div class="form-group">
+                                    <label>Total Days (Current Sem)</label>
+                                    <input id="create-total-days" type="number" min="0" value="90">
+                                </div>
+                                <div class="form-group">
+                                    <label>Attended Days</label>
+                                    <input id="create-attended-days" type="number" min="0" value="80">
+                                </div>
                             </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>Previous Attendance %</label>
+                                    <input id="create-prev-att" type="number" min="0" max="100" value="85">
+                                </div>
+                                <div class="form-group">
+                                    <label>Behavior Score (0-10)</label>
+                                    <input id="create-behavior" type="number" min="0" max="10" value="7">
+                                </div>
+                            </div>
+                            <button class="primary-btn" onclick="createStudent()">
+                                <i class="fa-solid fa-plus"></i> Create Student
+                            </button>
                         </div>
-                    </div>
 
-                    <!-- DELETE STUDENT -->
-                    <div id="crud-delete" class="crud-content hidden">
-                        <h3>Delete Student</h3>
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label>Register Number *</label>
-                                <input id="delete-search-rno" placeholder="Enter Register Number to Delete">
+                        <!-- READ STUDENT -->
+                        <div id="crud-read" class="crud-content hidden">
+                            <h3>Search & Read Student Details</h3>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>Search by Register Number</label>
+                                    <input id="read-rno" placeholder="Enter Register Number">
+                                </div>
+                                <div class="form-group">
+                                    <label>Or Search by Name</label>
+                                    <input id="read-name" placeholder="Enter Student Name">
+                                </div>
                             </div>
-                            <div class="form-group">
-                                <button class="secondary-btn" onclick="fetchStudentForDelete()">
-                                    <i class="fa-solid fa-search"></i> Fetch Student
-                                </button>
+                            <button class="primary-btn" onclick="readStudent()">
+                                <i class="fa-solid fa-search"></i> Search Student
+                            </button>
+
+                            <div id="read-results" class="hidden" style="margin-top: 20px;">
+                                <div class="card">
+                                    <h4>Search Results</h4>
+                                    <div class="table-wrapper">
+                                        <table id="read-table">
+                                            <thead>
+                                                <tr>
+                                                    <th>RNO</th>
+                                                    <th>Name</th>
+                                                    <th>Dept</th>
+                                                    <th>Year</th>
+                                                    <th>Sem</th>
+                                                    <th>Performance</th>
+                                                    <th>Risk</th>
+                                                    <th>Dropout</th>
+                                                    <th>Actions</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody></tbody>
+                                        </table>
+                                    </div>
+                                </div>
                             </div>
                         </div>
-                        
-                        <div id="delete-preview" class="hidden">
-                            <div class="card" style="background: #fff3cd; border: 1px solid #ffeaa7; margin-top: 15px;">
-                                <h4 style="color: #856404;">⚠️ Student Details to Delete</h4>
-                                <div id="delete-student-info"></div>
-                                <div class="action-buttons" style="margin-top: 15px;">
-                                    <button class="alert-btn" onclick="confirmDeleteStudent()" style="background: #dc3545;">
-                                        <i class="fa-solid fa-trash"></i> Confirm Delete
+
+                        <!-- UPDATE STUDENT -->
+                        <div id="crud-update" class="crud-content hidden">
+                            <h3>Update Student Details</h3>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>Register Number *</label>
+                                    <input id="update-search-rno" placeholder="Enter Register Number to Update">
+                                </div>
+                                <div class="form-group">
+                                    <button class="secondary-btn" onclick="fetchStudentForUpdate()">
+                                        <i class="fa-solid fa-search"></i> Fetch Details
                                     </button>
-                                    <button class="ghost-btn" onclick="cancelDelete()">
+                                </div>
+                            </div>
+
+                            <div id="update-form" class="hidden">
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label>Name</label>
+                                        <input id="update-name" placeholder="Student Name">
+                                    </div>
+                                    <div class="form-group">
+                                        <label>Email</label>
+                                        <input id="update-email" type="email" placeholder="student@example.com">
+                                    </div>
+                                    <div class="form-group">
+                                        <label>Department</label>
+                                        <select id="update-dept">
+                                            <option value="CSE">CSE</option>
+                                            <option value="ECE">ECE</option>
+                                            <option value="MECH">MECH</option>
+                                            <option value="CIVIL">CIVIL</option>
+                                            <option value="EEE">EEE</option>
+                                            <option value="CSE(AI)">CSE(AI)</option>
+                                            <option value="CDS">CDS</option>
+                                            <option value="IT">IT</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label>Year</label>
+                                        <select id="update-year">
+                                            <option value="1">1st Year</option>
+                                            <option value="2">2nd Year</option>
+                                            <option value="3">3rd Year</option>
+                                            <option value="4">4th Year</option>
+                                        </select>
+                                    </div>
+                                    <div class="form-group">
+                                        <label>Current Semester</label>
+                                        <select id="update-sem">
+                                            <option value="1">1</option>
+                                            <option value="2">2</option>
+                                            <option value="3">3</option>
+                                            <option value="4">4</option>
+                                            <option value="5">5</option>
+                                            <option value="6">6</option>
+                                            <option value="7">7</option>
+                                            <option value="8">8</option>
+                                        </select>
+                                    </div>
+                                    <div class="form-group">
+                                        <label>Internal Marks (0-30)</label>
+                                        <input id="update-internal" type="number" min="0" max="30">
+                                    </div>
+                                </div>
+                                <div class="form-row">
+                                    <div class="form-group full-width">
+                                        <label>Semester Marks</label>
+                                        <div class="sem-grid">
+                                            <input id="update-sem1" placeholder="SEM1" type="number" min="0" max="100">
+                                            <input id="update-sem2" placeholder="SEM2" type="number" min="0" max="100">
+                                            <input id="update-sem3" placeholder="SEM3" type="number" min="0" max="100">
+                                            <input id="update-sem4" placeholder="SEM4" type="number" min="0" max="100">
+                                            <input id="update-sem5" placeholder="SEM5" type="number" min="0" max="100">
+                                            <input id="update-sem6" placeholder="SEM6" type="number" min="0" max="100">
+                                            <input id="update-sem7" placeholder="SEM7" type="number" min="0" max="100">
+                                            <input id="update-sem8" placeholder="SEM8" type="number" min="0" max="100">
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="action-buttons">
+                                    <button class="primary-btn" onclick="updateStudent()">
+                                        <i class="fa-solid fa-save"></i> Update Student
+                                    </button>
+                                    <button class="ghost-btn" onclick="cancelUpdate()">
                                         <i class="fa-solid fa-times"></i> Cancel
                                     </button>
                                 </div>
                             </div>
                         </div>
-                    </div>
-                </div>
 
-                <!-- CRUD RESULTS -->
-                <div id="crud-results" class="hidden">
-                    <div class="card">
-                        <h3 id="crud-results-title">Operation Results</h3>
-                        <div id="crud-results-content"></div>
-                    </div>
-                </div>
-            </section>
+                        <!-- DELETE STUDENT -->
+                        <div id="crud-delete" class="crud-content hidden">
+                            <h3>Delete Student</h3>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>Register Number *</label>
+                                    <input id="delete-search-rno" placeholder="Enter Register Number to Delete">
+                                </div>
+                                <div class="form-group">
+                                    <button class="secondary-btn" onclick="fetchStudentForDelete()">
+                                        <i class="fa-solid fa-search"></i> Fetch Student
+                                    </button>
+                                </div>
+                            </div>
 
-            <!-- BATCH-WISE ANALYTICS MODE -->
-            <section id="mode-batch-analytics" class="mode-section fade-in hidden">
-                <div class="card form-card">
-                    <h2>Batch-wise Analytics</h2>
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label>Select Batch Year</label>
-                            <select id="batch-year-select">
-                                <option value="2026">Batch 2026 (4th Year)</option>
-                                <option value="2027">Batch 2027 (3rd Year)</option>
-                                <option value="2028">Batch 2028 (2nd Year)</option>
-                                <option value="2029">Batch 2029 (1st Year)</option>
-                            </select>
+                            <div id="delete-preview" class="hidden">
+                                <div class="card"
+                                    style="background: #fff3cd; border: 1px solid #ffeaa7; margin-top: 15px;">
+                                    <h4 style="color: #856404;">⚠️ Student Details to Delete</h4>
+                                    <div id="delete-student-info"></div>
+                                    <div class="action-buttons" style="margin-top: 15px;">
+                                        <button class="alert-btn" onclick="confirmDeleteStudent()"
+                                            style="background: #dc3545;">
+                                            <i class="fa-solid fa-trash"></i> Confirm Delete
+                                        </button>
+                                        <button class="ghost-btn" onclick="cancelDelete()">
+                                            <i class="fa-solid fa-times"></i> Cancel
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
-                    <button class="primary-btn" onclick="analyseBatch()">
-                        <i class="fa-solid fa-chart-line"></i> Analyse Batch
-                    </button>
-                </div>
 
-                <div id="batch-report" class="hidden">
-                    <div class="card kpi-row kpi-row-wide">
-                        <div class="kpi-pill small" id="batch-kpi-total"></div>
-                        <div class="kpi-pill small" id="batch-kpi-avg-perf"></div>
-                        <div class="kpi-pill small" id="batch-kpi-high-risk"></div>
-                        <div class="kpi-pill small" id="batch-kpi-avg-dropout"></div>
-                        <div class="kpi-pill small" id="batch-kpi-top-performers"></div>
-                    </div>
-
-                    <div class="chart-grid">
-                        <div class="chart-card" id="batch-chart-performance"></div>
-                        <div class="chart-card" id="batch-chart-risk"></div>
-                        <div class="chart-card" id="batch-chart-dropout"></div>
-                        <div class="chart-card" id="batch-chart-semester-trend"></div>
-                    </div>
-
-                    <div class="bottom-layout">
-                        <div class="card summary-card">
-                            <h3>Batch Summary & Insights</h3>
-                            <div id="batch-summary"></div>
+                    <!-- CRUD RESULTS -->
+                    <div id="crud-results" class="hidden">
+                        <div class="card">
+                            <h3 id="crud-results-title">Operation Results</h3>
+                            <div id="crud-results-content"></div>
                         </div>
                     </div>
-                </div>
-            </section>
+                </section>
 
-            <!-- Chat-based assistant disabled for current release -->
-            <!-- <section id="mode-chat" class="mode-section fade-in hidden">
+
+
+                <!-- Chat-based assistant disabled for current release -->
+                <!-- <section id="mode-chat" class="mode-section fade-in hidden">
                 <div class="card form-card">
                     <h2><i class="fa-solid fa-robot"></i> AI Analytics Assistant</h2>
                     <p class="small-text">Ask questions about student performance, risk assessment, and analytics in natural language.</p>
@@ -1277,38 +1238,45 @@
                 </div>
             </section> -->
 
-        </main>
-    </div>
-</div>
-
-<!-- Student List Modal -->
-<div id="student-modal" class="modal hidden">
-    <div class="modal-content">
-        <div class="modal-header">
-            <h3 id="modal-title">Student List</h3>
-            <button class="modal-close" onclick="closeStudentModal()">&times;</button>
+            </main>
         </div>
-        <div class="modal-body">
-            <div class="table-wrapper">
-                <table id="modal-student-table">
-                    <thead>
-                        <tr>
-                            <th>RNO</th><th>Name</th><th>Dept</th><th>Year</th><th>Batch</th>
-                            <th>Performance</th><th>Risk</th><th>Dropout</th>
-                        </tr>
-                    </thead>
-                    <tbody></tbody>
-                </table>
+    </div>
+
+    <!-- Student List Modal -->
+    <div id="student-modal" class="modal hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="modal-title">Student List</h3>
+                <button class="modal-close" onclick="closeStudentModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="table-wrapper">
+                    <table id="modal-student-table">
+                        <thead>
+                            <tr>
+                                <th>RNO</th>
+                                <th>Name</th>
+                                <th>Dept</th>
+                                <th>Year</th>
+                                <th>Batch</th>
+                                <th>Performance</th>
+                                <th>Risk</th>
+                                <th>Dropout</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
             </div>
         </div>
     </div>
-</div>
 
-<div id="loading-overlay" style="display: none;">
-    <p>Processing...</p>
-</div>
+    <div id="loading-overlay" style="display: none;">
+        <p>Processing...</p>
+    </div>
 
 
 
 </body>
+
 </html>

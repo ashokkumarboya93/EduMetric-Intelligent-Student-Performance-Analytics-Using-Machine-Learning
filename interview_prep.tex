@@ -1,0 +1,131 @@
+\documentclass[12pt,a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage{amsmath}
+\usepackage{amsfonts}
+\usepackage{amssymb}
+\usepackage{graphicx}
+\usepackage{hyperref}
+\usepackage{listings}
+\usepackage{xcolor}
+
+\definecolor{codegreen}{rgb}{0,0.6,0}
+\definecolor{codegray}{rgb}{0.5,0.5,0.5}
+\definecolor{codepurple}{rgb}{0.58,0,0.82}
+\definecolor{backcolour}{rgb}{0.95,0.95,0.92}
+
+\lstset{
+    backgroundcolor=\color{backcolour},   
+    commentstyle=\color{codegreen},
+    keywordstyle=\color{magenta},
+    numberstyle=\tiny\color{codegray},
+    stringstyle=\color{codepurple},
+    basicstyle=\ttfamily\footnotesize,
+    breakatwhitespace=false,         
+    breaklines=true,                 
+    captionpos=b,                    
+    keepspaces=true,                 
+    numbers=left,                    
+    numbersep=5pt,                  
+    showspaces=false,                
+    showstringspaces=false,
+    showtabs=false,                  
+    tabsize=2
+}
+
+\title{EduMetric: Student Performance Analytics Platform \\ \large Interview Preparation Guide}
+\author{Project Team}
+\date{\today}
+
+\begin{document}
+
+\maketitle
+
+\section{Project Overview}
+\textbf{EduMetric} is an intelligent student analytics platform designed to predict academic outcomes and identify students at risk using Machine Learning (ML). Built with a Flask backend and a modern JavaScript frontend, the platform provides real-time insights into student performance, attendance, and behavioral trends.
+
+\section{Key Features}
+\begin{itemize}
+    \item \textbf{Predictive Analytics}: Classified outcomes for Academic Performance, Risk Level, and Dropout Probability.
+    \item \textbf{Interactive Dashboards}: Visualized insights using Plotly charts (Radar, Gauge, Donut, and Scatter plots).
+    \item \textbf{Mentor Alert System}: Automated email notifications to mentors for students identified with "Poor" or "Medium" performance.
+    \item \textbf{Cloud Persistence}: Scalable data management using Supabase (PostgreSQL).
+    \item \textbf{CRUD Management}: Full student lifecycle management (Create, Read, Update, Delete).
+\end{itemize}
+
+\section{Detailed Execution Flow}
+The system follows a synchronous flow from data entry to visual feedback:
+\begin{enumerate}
+    \item \textbf{Front-end Trigger}: The user inputs student details on the dashboard (e.g., Register Number, Semester Marks, Attendance).
+    \item \textbf{API Request}: JavaScript (\texttt{app.js}) sends a POST request to the Flask server (\texttt{/api/student/predict}).
+    \item \textbf{Feature Engineering}: The backend executes \texttt{compute_features()}, deriving statistical indicators like \textit{performance trend} and \textit{attendance percentage}.
+    \item \textbf{ML Inference}: The processed features are passed to Gradient Boosting models loaded via \texttt{joblib}. These models return predicted labels (High/Medium/Low).
+    \item \textbf{Data Storage}: Results are saved to Supabase for persistent tracking.
+    \item \textbf{Responsive Visualization}: The frontend receives JSON data and dynamically renders various Plotly charts to illustrate the student's profile.
+    \item \textbf{Automated Intervention}: If the prediction reveals a risk, the \texttt{api_send_alert} function is triggered to notify the mentor via SMTP.
+\end{enumerate}
+
+\section{Core Code Functionality}
+
+\subsection{Feature Engineering (\texttt{app.py})}
+The system calculates weighted scores to prepare data for the ML model.
+\begin{lstlisting}[language=Python]
+def compute_features(student):
+    # Calculate Weighted performance score
+    internal_pct = float(student.get("INTERNAL_MARKS", 0) or 0) / 30.0 * 100.0
+    behavior_pct = float(student.get("BEHAVIOR_SCORE_10", 0) or 0) * 10.0
+    
+    # Statistical synthesis of attendance
+    attendance_pct = present_att * 0.7 + prev_att * 0.2 + behavior_pct * 0.1
+    
+    # Final consolidated score for prediction
+    performance_overall = past_avg * 0.5 + internal_pct * 0.3 + attendance_pct * 0.15 + behavior_pct * 0.05
+    return { "performance_overall": performance_overall, ... }
+\end{lstlisting}
+
+\subsection{Machine Learning Prediction (\texttt{app.py})}
+\begin{lstlisting}[language=Python]
+def predict_student(features):
+    X = np.array([
+        features["past_avg"], features["past_count"], features["internal_pct"],
+        features["attendance_pct"], features["behavior_pct"], features["performance_trend"]
+    ]).reshape(1, -1)
+    
+    perf_pred = performance_model.predict(X)[0]
+    # Inverse transform to get human-readable labels (e.g., 'High', 'Low')
+    return {
+        "performance_label": performance_encoder.inverse_transform([perf_pred])[0],
+        ...
+    }
+\end{lstlisting}
+
+\subsection{Frontend Analysis Flow (\texttt{app.js})}
+\begin{lstlisting}[language=JavaScript]
+async function analyseStudent(student) {
+    showLoading("Analysing student...");
+    const result = await api("/api/student/predict", "POST", student);
+    if (result.success) {
+        renderStudentHeader(result);
+        renderStudentCharts(result); // Triggers Plotly.newPlot
+        renderStudentSummary(result);
+    }
+}
+\end{lstlisting}
+
+\section{Interview Q\&A}
+
+\subsection{What is the core problem EduMetric solves?}
+It solves the problem of "delayed intervention" in education. Traditional systems only show past grades; EduMetric uses those grades along with behavioral and attendance data to \textit{predict} future outcomes, allowing teachers to help students \textit{before} they fail or drop out.
+
+\subsection{Why did you use Supabase over local MySQL?}
+Supabase provides a scalable, cloud-hosted PostgreSQL database with built-in real-time capabilities and easier deployment. This ensures that the student data is accessible from anywhere without complex server configurations.
+
+\subsection{How does your system handle missing data?}
+In the \texttt{compute_features} and \texttt{load_students_df} functions, we use Pandas' \texttt{fillna(0)} and Python's \texttt{get(key, default)} to ensure the application doesn't crash when optional fields are empty.
+
+\subsection{What ML algorithms are used?}
+The project uses Gradient Boosting models (Random Forest or XGBoost variants) because they handle tabular data exceptionally well and are robust against outliers in student performance metrics.
+
+\subsection{How is the Risk Score calculated?}
+The Risk Score is the inverse of the Performance Overall score. If a student's performance is 80\%, their risk score is approximately 20\%. Dropout risk is weighted more heavily toward attendance (70\%) as low attendance is a primary indicator of potential dropout.
+
+\end{document}

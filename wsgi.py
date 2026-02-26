@@ -4,7 +4,7 @@ import sys
 import os
 
 # Add your project directory to sys.path
-project_home = '/home/yourusername/EduMetric-Final-Year-Project'
+project_home = '/home/ashokkumar369/Edumetric1'
 if project_home not in sys.path:
     sys.path = [project_home] + sys.path
 
